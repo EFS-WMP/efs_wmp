@@ -1,0 +1,27 @@
+services:
+  itad-core:
+    build: .
+    ports:
+      - "8001:8001"
+    environment:
+      - ITAD_CORE_DATABASE_URL=postgresql+psycopg://itad_user:itad_pass@postgres:5432/itad_core
+    depends_on:
+      - postgres
+    working_dir: /app
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    volumes:
+      - ./:/app
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=itad_core
+      - POSTGRES_USER=itad_user
+      - POSTGRES_PASSWORD=itad_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
