@@ -19,7 +19,7 @@ async def test_create_bol_idempotent():
     async with build_client() as client:
         data = {
             "bol_number": f"TEST-BOL-{uuid.uuid4()}",
-            "source_type": "PICKUP",
+            "source_type": "DROP_OFF",
             "customer_snapshot_json": {"name": "Test Customer"}
         }
         headers = {"Idempotency-Key": f"test-key-{uuid.uuid4()}"}
@@ -43,7 +43,7 @@ async def test_bol_uniqueness():
     async with build_client() as client:
         data = {
             "bol_number": f"UNIQUE-BOL-{uuid.uuid4()}",
-            "source_type": "PICKUP",
+            "source_type": "DROP_OFF",
             "customer_snapshot_json": {"name": "Test Customer"}
         }
         headers1 = {"Idempotency-Key": f"unique-key-{uuid.uuid4()}"}
@@ -62,7 +62,7 @@ async def test_bol_uniqueness():
 async def test_bol_auto_generation():
     async with build_client() as client:
         data = {
-            "source_type": "PICKUP",
+            "source_type": "DROP_OFF",
             "customer_snapshot_json": {"name": "Test Customer"}
         }
         headers = {"Idempotency-Key": f"auto-gen-key-{uuid.uuid4()}"}
@@ -79,7 +79,7 @@ async def test_requirement_profile_persistence():
     async with build_client() as client:
         data = {
             "bol_number": f"PROFILE-BOL-{uuid.uuid4()}",
-            "source_type": "PICKUP",
+            "source_type": "DROP_OFF",
             "customer_snapshot_json": {"name": "Test Customer"},
             "requirement_profile_snapshot_json": {"rules": ["rule1"]},
             "requirement_profile_version": "v1.0",
@@ -128,7 +128,7 @@ async def test_external_id_map_uniqueness():
 async def test_bol_gate_append_only():
     async with build_client() as client:
         # Create BOL
-        data = {"source_type": "PICKUP", "customer_snapshot_json": {"name": "Test"}}
+        data = {"source_type": "DROP_OFF", "customer_snapshot_json": {"name": "Test"}}
         headers = {"Idempotency-Key": f"gate-test-key-{uuid.uuid4()}"}
         response = await client.post("/api/v1/bol", json=data, headers=headers)
         bol_id = response.json()["id"]
@@ -153,7 +153,7 @@ async def test_bol_gate_append_only():
 async def test_requirements_confirm_and_lock():
     async with build_client() as client:
         # Create BOL
-        data = {"source_type": "PICKUP", "customer_snapshot_json": {"name": "Test"}}
+        data = {"source_type": "DROP_OFF", "customer_snapshot_json": {"name": "Test"}}
         headers = {"Idempotency-Key": f"req-test-key-{uuid.uuid4()}"}
         response = await client.post("/api/v1/bol", json=data, headers=headers)
         bol_id = response.json()["id"]
@@ -177,7 +177,7 @@ async def test_requirements_confirm_and_lock():
 async def test_close_bol_with_blockers():
     async with build_client() as client:
         # Create BOL
-        data = {"source_type": "PICKUP", "customer_snapshot_json": {"name": "Test"}}
+        data = {"source_type": "DROP_OFF", "customer_snapshot_json": {"name": "Test"}}
         headers = {"Idempotency-Key": f"close-test-key-{uuid.uuid4()}"}
         response = await client.post("/api/v1/bol", json=data, headers=headers)
         bol_id = response.json()["id"]

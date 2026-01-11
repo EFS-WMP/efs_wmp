@@ -1,2 +1,2 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_itad_core_itad_core,itad_core.itad_core,model_itad_core_itad_core,base.group_user,1,1,1,1
+access_itad_core_outbox,itad.core.outbox,model_itad_core_outbox,base.group_user,1,1,1,1

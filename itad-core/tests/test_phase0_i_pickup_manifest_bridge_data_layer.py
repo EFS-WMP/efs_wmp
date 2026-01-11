@@ -46,14 +46,15 @@ async def ensure_tables():
         await session.commit()
 
 
-def _minimal_bol_pickup():
+def _minimal_bol_pickup(*, pickup_manifest_id: str | None = None, source_type: str | None = None):
     return BOL(
         bol_number=f"BOL-{uuid.uuid4().hex[:6]}",
-        source_type=SourceType.PICKUP.value,
+        source_type=source_type or SourceType.PICKUP.value,
         customer_snapshot_json={},
         requirement_profile_snapshot_json={},
         requirement_profile_version="v1",
         requirement_profile_effective_from=datetime.datetime.utcnow(),
+        pickup_manifest_id=pickup_manifest_id,
     )
 
 
@@ -111,15 +112,14 @@ async def test_binding_requires_pickup_bol_and_submitted_status():
         }
         manifest = await create_or_get_manifest_from_odoo(session, payload, correlation_id=None, idempotency_key=None, actor="tester")
 
-        non_pickup_bol = _minimal_bol_pickup()
-        non_pickup_bol.source_type = SourceType.DROP_OFF.value
+        non_pickup_bol = _minimal_bol_pickup(source_type=SourceType.DROP_OFF.value)
         session.add(non_pickup_bol)
         await session.commit()
 
         with pytest.raises(ValueError):
             await bind_manifest_to_bol(session, manifest.id, non_pickup_bol.id, actor="tester")
 
-        pickup_bol = _minimal_bol_pickup()
+        pickup_bol = _minimal_bol_pickup(pickup_manifest_id=manifest.id)
         session.add(pickup_bol)
         await session.commit()
 

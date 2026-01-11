@@ -26,7 +26,7 @@ async def create_bol(client: AsyncClient) -> str:
     bol_number = f"TEST-BOL-{uuid.uuid4()}"
     data = {
         "bol_number": bol_number,
-        "source_type": "PICKUP",
+        "source_type": "DROP_OFF",
         "customer_snapshot_json": {"name": "Test Customer"},
     }
     headers = {"Idempotency-Key": f"bol-{uuid.uuid4()}"}

@@ -40,7 +40,7 @@ async def seed_demo():
         # Create BOL
         bol = BOL(
             bol_number="BOL-DEMO-001",
-            source_type=SourceType.PICKUP.value,
+            source_type=SourceType.DROP_OFF.value,
             customer_snapshot_json={"name": "Demo Customer", "id": "odoo-cust-demo"},
             created_by="seed",
         )

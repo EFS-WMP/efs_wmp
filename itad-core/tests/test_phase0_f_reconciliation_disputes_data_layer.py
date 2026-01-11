@@ -19,7 +19,7 @@ async def ensure_tables():
 async def _create_bol(session) -> str:
     bol = BOL(
         bol_number=f"TEST-BOL-{uuid.uuid4()}",
-        source_type=SourceType.PICKUP.value,
+        source_type=SourceType.DROP_OFF.value,
         customer_snapshot_json={"name": "Test"},
         created_by="test",
     )

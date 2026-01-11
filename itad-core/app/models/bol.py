@@ -32,6 +32,10 @@ class BOL(Base):
             f"status IN ({', '.join(repr(e.value) for e in Status)})",
             name="ck_bol_status",
         ),
+        CheckConstraint(
+            "(source_type <> 'PICKUP') OR (pickup_manifest_id IS NOT NULL)",
+            name="ck_bol_pickup_manifest_required",
+        ),
     )
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

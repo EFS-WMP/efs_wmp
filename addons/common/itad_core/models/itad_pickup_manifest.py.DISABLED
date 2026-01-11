@@ -1,0 +1,516 @@
+# =========================================================
+# File: itad_core/models/itad_pickup_manifest.py
+# =========================================================
+from __future__ import annotations
+
+import hashlib
+import json
+
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError
+
+
+def _canonical_json(obj) -> str:
+    return json.dumps(obj, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+
+
+def _sha256_hex(s: str) -> str:
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
+
+class ItadPickupManifest(models.Model):
+    """
+    Local Phase-1 envelope/bridge record.
+    - Local human number: name (ir.sequence on confirm)
+    - Anchored on fsm.order (order_id)
+    - Outbox owns delivery; this model stores audit snapshot + ITAD Core refs.
+    """
+    _name = "itad.pickup.manifest"
+    _description = "ITAD Pickup Manifest"
+    _order = "create_date desc"
+    _rec_name = "name"
+
+    name = fields.Char(string="Manifest Number", required=True, default="/", copy=False, index=True)
+
+    state = fields.Selection(
+        [
+            ("draft", "Draft"),
+            ("confirmed", "Confirmed"),
+            ("submitted", "Submitted"),
+            ("sent", "Sent"),
+            ("failed", "Failed"),
+            ("cancelled", "Cancelled"),
+        ],
+        default="draft",
+        required=True,
+        index=True,
+    )
+
+    order_id = fields.Many2one("fsm.order", required=True, index=True, ondelete="cascade")
+    company_id = fields.Many2one(related="order_id.company_id", store=True, readonly=True)
+
+    # Stable keys across retries (SoR for idempotency)
+    idempotency_key = fields.Char(required=True, index=True, copy=False)
+    correlation_id = fields.Char(required=True, index=True, copy=False)
+
+    # Audit snapshot
+    payload_json = fields.Text(string="Last Payload JSON", readonly=True)
+    payload_fingerprint = fields.Char(index=True, readonly=True)
+
+    snapshot_json = fields.Text(string="Snapshot JSON")
+    evidence_refs_json = fields.Text(string="Evidence Refs JSON")
+    evidence_attachment_ids = fields.Many2many(
+        "ir.attachment",
+        "itad_pickup_manifest_ir_attachment_rel",
+        "manifest_id",
+        "attachment_id",
+        string="Evidence Attachments",
+    )
+
+    # ITAD Core refs (read-only truth coming back)
+    itad_pickup_manifest_id = fields.Char(index=True, readonly=True)
+    itad_manifest_no = fields.Char(index=True, readonly=True)
+    itad_status = fields.Char(index=True, readonly=True)
+    itad_bol_id = fields.Char(index=True, readonly=True)
+    itad_geocode_gate = fields.Char(index=True, readonly=True)
+    itad_receiving_id = fields.Char(index=True, readonly=True)
+
+    last_submit_at = fields.Datetime(readonly=True)
+    last_error = fields.Text(readonly=True)
+
+    _sql_constraints = [
+        ("itad_pickup_manifest_order_uniq", "unique(order_id)", "Each FSM order can only have one pickup manifest."),
+        ("itad_pickup_manifest_idem_uniq", "unique(idempotency_key)", "Idempotency key must be unique."),
+        ("itad_pickup_manifest_no_company_uniq", "unique(name, company_id)", "Manifest Number must be unique per company."),
+    ]
+
+    def _next_manifest_number(self) -> str:
+        seq = self.env["ir.sequence"].next_by_code("itad.pickup.manifest")
+        if not seq:
+            raise UserError(
+                _(
+                    "Missing ir.sequence for ITAD Pickup Manifest.\n"
+                    "Create sequence with code 'itad.pickup.manifest'."
+                )
+            )
+        return seq
+
+    def action_confirm(self):
+        for rec in self:
+            if rec.state != "draft":
+                continue
+            if not rec.name or rec.name == "/":
+                rec.name = rec._next_manifest_number()
+            rec.state = "confirmed"
+        return True
+
+    def action_submit(self):
+        for rec in self:
+            if rec.state in ("confirmed", "draft"):
+                rec.state = "submitted"
+        return True
+
+    @api.model
+    def build_fingerprint(self, payload: dict) -> tuple[str, str]:
+        canon = _canonical_json(payload)
+        return canon, _sha256_hex(canon)
+
+
+# =========================================================
+# File: itad_core/models/fsm_order.py
+# =========================================================
+import base64
+import hashlib
+import json
+import uuid
+
+from odoo import _, fields, models
+from odoo.exceptions import UserError
+
+
+def _canonical_json(obj) -> str:
+    return json.dumps(obj, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+
+
+def _sha256_hex_str(s: str) -> str:
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
+
+class FsmOrder(models.Model):
+    _inherit = "fsm.order"
+
+    itad_pickup_manifest_id = fields.Many2one("itad.pickup.manifest", string="Pickup Manifest", copy=False)
+    itad_outbox_id = fields.Many2one("itad.core.outbox", readonly=True, copy=False)
+    itad_outbox_last_id = fields.Many2one("itad.core.outbox", string="Last Outbox Record", readonly=True, copy=False)
+
+    itad_submit_state = fields.Selection(
+        [
+            ("draft", "Draft"),
+            ("pending", "Pending"),
+            ("sent", "Sent"),
+            ("failed", "Failed"),
+            ("error", "Error"),
+        ],
+        default="draft",
+        readonly=True,
+        copy=False,
+    )
+
+    itad_manifest_no = fields.Char(readonly=True, copy=False)
+    itad_manifest_status = fields.Char(readonly=True, copy=False)
+    itad_bol_id = fields.Char(readonly=True, copy=False)
+    itad_receiving_id = fields.Char(readonly=True, copy=False, string="Receiving ID")
+    itad_geocode_gate = fields.Char(readonly=True, copy=False, string="Geocode Gate")
+    itad_last_submit_at = fields.Datetime(readonly=True, copy=False)
+    itad_last_error = fields.Text(readonly=True, copy=False)
+
+    def _itad_collect_pod_evidence(self):
+        self.ensure_one()
+        attachments = self.env["ir.attachment"].search(
+            [("res_model", "=", self._name), ("res_id", "=", self.id)]
+        )
+        items = []
+        for attachment in attachments:
+            sha256_hex = ""
+            if attachment.datas:
+                try:
+                    raw = base64.b64decode(attachment.datas)
+                    sha256_hex = hashlib.sha256(raw).hexdigest()
+                except Exception:
+                    sha256_hex = ""
+            items.append(
+                {
+                    "ref": f"odoo-attachment:{attachment.id}",
+                    "sha256": sha256_hex,
+                    "filename": attachment.name,
+                    "mimetype": attachment.mimetype,
+                }
+            )
+        return attachments, items
+
+    def _itad_build_payload(self):
+        self.ensure_one()
+        completed_at = self.date_end or fields.Datetime.now()
+        partner = getattr(self, "partner_id", False)
+        location = getattr(self, "location_id", False) or getattr(self, "fsm_location_id", False)
+
+        payload = {
+            "source_system": "odoo18",
+            "completed_at": fields.Datetime.to_string(completed_at),
+            "odoo_refs": {
+                "odoo_day_route_id": None,
+                "odoo_stop_id": None,
+                "odoo_pickup_occurrence_id": str(self.id),  # phase1 placeholder
+                "odoo_work_order_id": self.name or str(self.id),
+                "customer_id": partner and str(partner.id) or None,
+                "service_location_id": location and str(location.id) or None,
+            },
+            "route_snapshot_json": {
+                "fsm_order_id": self.id,
+                "fsm_stage": self.stage_id.name if self.stage_id else None,
+            },
+            "location_snapshot_json": {
+                "name": location and (location.display_name or location.name) or None,
+                "street": location and getattr(location, "street", None) or None,
+                "street2": location and getattr(location, "street2", None) or None,
+                "city": location and getattr(location, "city", None) or None,
+                "zip": location and getattr(location, "zip", None) or None,
+                "state": location and getattr(getattr(location, "state_id", None), "name", None) or None,
+                "country": location and getattr(getattr(location, "country_id", None), "name", None) or None,
+            },
+        }
+
+        canon = _canonical_json(payload)
+        payload_sha256 = _sha256_hex_str(canon)
+        return payload, canon, payload_sha256
+
+    def _itad_get_or_create_manifest_bridge(self, payload: dict, payload_canon: str):
+        self.ensure_one()
+
+        manifest = self.itad_pickup_manifest_id
+        if not manifest:
+            manifest = self.env["itad.pickup.manifest"].create(
+                {
+                    "order_id": self.id,
+                    "idempotency_key": f"odoo18-fsm-order:{self.id}:{uuid.uuid4().hex}",
+                    "correlation_id": uuid.uuid4().hex,
+                }
+            )
+            self.itad_pickup_manifest_id = manifest.id
+
+        attachments, evidence_items = self._itad_collect_pod_evidence()
+
+        manifest.write(
+            {
+                "payload_json": payload_canon,
+                "payload_fingerprint": hashlib.sha256(payload_canon.encode("utf-8")).hexdigest(),
+                "snapshot_json": json.dumps(
+                    {
+                        "route_snapshot_json": payload.get("route_snapshot_json"),
+                        "location_snapshot_json": payload.get("location_snapshot_json"),
+                    },
+                    ensure_ascii=True,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+                "evidence_refs_json": json.dumps(
+                    {"items": evidence_items},
+                    ensure_ascii=True,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+                "evidence_attachment_ids": [(6, 0, attachments.ids)] if attachments else False,
+                "last_submit_at": fields.Datetime.now(),
+                "last_error": False,
+            }
+        )
+
+        if manifest.state == "draft":
+            manifest.action_confirm()
+        if manifest.state == "confirmed":
+            manifest.action_submit()
+
+        self.write(
+            {
+                "itad_manifest_no": manifest.name,
+                "itad_manifest_status": manifest.state,
+            }
+        )
+        return manifest
+
+    def action_submit_pickup_manifest(self):
+        for order in self:
+            if not order.is_closed:
+                raise UserError(_("FSM Order must be completed before submitting pickup manifest."))
+
+            payload, payload_canon, payload_sha256 = order._itad_build_payload()
+            manifest = order._itad_get_or_create_manifest_bridge(payload, payload_canon)
+
+            outbox = self.env["itad.core.outbox"].search(
+                [("order_id", "=", order.id)], order="id desc", limit=1
+            )
+            if outbox:
+                if outbox.state == "sent":
+                    raise UserError(_("Pickup Manifest already submitted."))
+                if outbox.state == "failed":
+                    outbox.action_retry()
+
+                order.write(
+                    {
+                        "itad_outbox_id": outbox.id,
+                        "itad_outbox_last_id": outbox.id,
+                        "itad_submit_state": outbox.state,
+                        "itad_last_error": False,
+                        "itad_last_submit_at": fields.Datetime.now(),
+                        "itad_manifest_no": manifest.name,
+                        "itad_manifest_status": manifest.state,
+                    }
+                )
+                continue
+
+            outbox = self.env["itad.core.outbox"].create(
+                {
+                    "order_id": order.id,
+                    "state": "pending",
+                    "idempotency_key": manifest.idempotency_key,
+                    "correlation_id": manifest.correlation_id,
+                    "payload_json": payload_canon,
+                    "payload_sha256": payload_sha256,
+                }
+            )
+
+            order.write(
+                {
+                    "itad_outbox_id": outbox.id,
+                    "itad_outbox_last_id": outbox.id,
+                    "itad_submit_state": "pending",
+                    "itad_last_error": False,
+                    "itad_last_submit_at": fields.Datetime.now(),
+                    "itad_manifest_no": manifest.name,
+                    "itad_manifest_status": manifest.state,
+                }
+            )
+
+        return True
+
+
+# =========================================================
+# File: itad_core/models/itad_outbox.py
+# =========================================================
+import json
+from datetime import timedelta
+
+import requests
+
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
+
+
+class ItadCoreOutbox(models.Model):
+    _name = "itad.core.outbox"
+    _description = "ITAD Core Outbox"
+    _order = "create_date desc"
+    _rec_name = "idempotency_key"
+
+    order_id = fields.Many2one("fsm.order", required=True, ondelete="cascade")
+    state = fields.Selection(
+        [("pending", "Pending"), ("sent", "Sent"), ("failed", "Failed")],
+        default="pending",
+        required=True,
+    )
+    idempotency_key = fields.Char(required=True, readonly=True)
+    correlation_id = fields.Char(required=True, readonly=True)
+    payload_json = fields.Text(readonly=True)
+    payload_sha256 = fields.Char(readonly=True)
+    last_error = fields.Text(readonly=True)
+    attempt_count = fields.Integer(readonly=True, default=0)
+    next_attempt_at = fields.Datetime(readonly=True)
+
+    itad_pickup_manifest_id = fields.Char(readonly=True)
+    itad_manifest_no = fields.Char(readonly=True)
+    itad_bol_id = fields.Char(readonly=True)
+    itad_geocode_gate = fields.Char(readonly=True)
+    itad_receiving_id = fields.Char(readonly=True)
+
+    def _itad_http_request(self, url, payload, headers):
+        return requests.post(url, json=payload, headers=headers, timeout=10)
+
+    def _get_config(self):
+        return self.env["itad.core.config"].get_itad_core_config()
+
+    def _send_to_itad_core(self):
+        self.ensure_one()
+        if not self.payload_json:
+            raise UserError(_("Missing payload_json"))
+        base_url, token = self._get_config()
+        url = base_url.rstrip("/") + "/api/v1/pickup-manifests:submit"
+        headers = {
+            "Idempotency-Key": self.idempotency_key,
+            "X-Correlation-Id": self.correlation_id,
+        }
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        payload = json.loads(self.payload_json)
+        response = self._itad_http_request(url, payload, headers)
+        if 200 <= response.status_code < 300:
+            return response.json()
+        raise UserError(
+            _("ITAD Core error %(status)s: %(body)s")
+            % {"status": response.status_code, "body": response.text}
+        )
+
+    def _record_success(self, data):
+        now = fields.Datetime.now()
+        self.write(
+            {
+                "state": "sent",
+                "attempt_count": self.attempt_count + 1,
+                "next_attempt_at": False,
+                "last_error": False,
+                "itad_pickup_manifest_id": data.get("pickup_manifest_id"),
+                "itad_manifest_no": data.get("manifest_no"),
+                "itad_bol_id": data.get("bol_id"),
+                "itad_geocode_gate": data.get("geocode_gate"),
+                "itad_receiving_id": data.get("receiving_id"),
+            }
+        )
+
+        order = self.order_id
+        manifest = order.itad_pickup_manifest_id
+        if manifest:
+            manifest.write(
+                {
+                    "itad_pickup_manifest_id": data.get("pickup_manifest_id"),
+                    "itad_manifest_no": data.get("manifest_no"),
+                    "itad_status": data.get("status"),
+                    "itad_bol_id": data.get("bol_id"),
+                    "itad_geocode_gate": data.get("geocode_gate"),
+                    "itad_receiving_id": data.get("receiving_id"),
+                    "state": "sent",
+                    "last_submit_at": now,
+                    "last_error": False,
+                }
+            )
+
+        order.write(
+            {
+                "itad_manifest_no": (manifest and manifest.name) or order.itad_manifest_no,
+                "itad_manifest_status": data.get("status"),
+                "itad_bol_id": data.get("bol_id"),
+                "itad_geocode_gate": data.get("geocode_gate"),
+                "itad_receiving_id": data.get("receiving_id"),
+                "itad_last_submit_at": now,
+                "itad_last_error": False,
+                "itad_submit_state": "sent",
+                "itad_outbox_id": self.id,
+                "itad_outbox_last_id": self.id,
+            }
+        )
+
+    def _record_failure(self, error_message):
+        now = fields.Datetime.now()
+        attempt_count = self.attempt_count + 1
+        delay = min(60 * (2 ** max(attempt_count - 1, 0)), 3600)
+        next_attempt = now + timedelta(seconds=delay)
+        self.write(
+            {
+                "state": "failed",
+                "attempt_count": attempt_count,
+                "next_attempt_at": next_attempt,
+                "last_error": error_message,
+            }
+        )
+
+        order = self.order_id
+        if order.itad_pickup_manifest_id:
+            order.itad_pickup_manifest_id.write({"state": "failed", "last_error": error_message})
+
+        order.write(
+            {
+                "itad_submit_state": "failed",
+                "itad_last_error": error_message,
+                "itad_outbox_id": self.id,
+                "itad_outbox_last_id": self.id,
+            }
+        )
+
+    def _process_one(self):
+        self.ensure_one()
+        try:
+            data = self._send_to_itad_core()
+            self._record_success(data)
+        except Exception as exc:
+            self._record_failure(str(exc))
+
+    def action_retry(self):
+        now = fields.Datetime.now()
+        for record in self:
+            record.write({"state": "pending", "next_attempt_at": now, "last_error": False})
+            record.order_id.write(
+                {
+                    "itad_submit_state": "pending",
+                    "itad_last_error": False,
+                    "itad_outbox_id": record.id,
+                    "itad_outbox_last_id": record.id,
+                }
+            )
+            if record.order_id.itad_pickup_manifest_id:
+                record.order_id.itad_pickup_manifest_id.write({"state": "submitted"})
+        return True
+
+    @api.model
+    def _cron_process_itad_outbox(self):
+        now = fields.Datetime.now()
+        domain = [
+            "|",
+            ("state", "=", "pending"),
+            "&",
+            ("state", "=", "failed"),
+            "|",
+            ("next_attempt_at", "=", False),
+            ("next_attempt_at", "<=", now),
+        ]
+        records = self.search(domain, order="create_date asc")
+        for record in records:
+            record._process_one()
+        return True

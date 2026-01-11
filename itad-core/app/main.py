@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.bol import router as bol_router
 from app.api.v1.processing import router as processing_router
+from app.api.v1.pickup_manifests import router as pickup_manifests_router
 from app.api.v1.receiving import router as receiving_router
 from app.api.v1.taxonomy import router as taxonomy_router
 from app.api.v1.workstreams import router as workstreams_router
@@ -36,6 +37,7 @@ app.add_middleware(
 app.add_middleware(CorrelationMiddleware)
 
 app.include_router(bol_router, prefix="/api/v1", tags=["BOL"])
+app.include_router(pickup_manifests_router, prefix="/api/v1", tags=["PickupManifests"])
 app.include_router(receiving_router, prefix="/api/v1", tags=["Receiving"])
 app.include_router(workstreams_router, prefix="/api/v1", tags=["Workstreams"])
 app.include_router(taxonomy_router, prefix="/api/v1", tags=["Taxonomy"])

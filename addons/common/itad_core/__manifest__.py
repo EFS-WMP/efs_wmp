@@ -1,33 +1,27 @@
 {
-    'name': "itad_core",
-
-    'summary': "Short (1 phrase/line) summary of the module's purpose",
-
-    'description': """
-Long description of module's purpose
-    """,
-
-    'author': "My Company",
-    'website': "https://www.yourcompany.com",
-
-    # Categories can be used to filter modules in modules listing
-    # Check https://github.com/odoo/odoo/blob/15.0/odoo/addons/base/data/ir_module_category_data.xml
-    # for the full list
-    'category': 'Uncategorized',
-    'version': '0.1',
-
-    # any module necessary for this one to work correctly
-    'depends': ['base'],
-
-    # always loaded
-    'data': [
-        # 'security/ir.model.access.csv',
-        'views/views.xml',
-        'views/templates.xml',
+    "name": "ITAD Core Bridge (Phase 1)",
+    "summary": "Odoo 18 Field Service → ITAD Core pickup_manifest outbox bridge",
+    "description": """
+Phase 1 vertical slice:
+- Odoo 18 (SoR dispatch) submits pickup_manifest via outbox (idempotent)
+- ITAD Core (SoR compliance) returns manifest_id/bol_id/status/geocode gate
+- Odoo stores returned IDs as read-only references only (no dual writes)
+""",
+    "category": "Services",
+    "version": "18.0.1.0.0",
+    "license": "LGPL-3",
+    "author": "My Company",
+    "website": "https://www.yourcompany.com",
+    "depends": [
+        "base",
+        "fieldservice",
     ],
-    # only loaded in demonstration mode
-    'demo': [
-        'demo/demo.xml',
+    "data": [
+        "security/ir.model.access.csv",
+        "views/itad_outbox_views.xml",
+        "views/fsm_order_itad.xml",
+        "data/itad_outbox_cron.xml",
     ],
+    "installable": True,
+    "application": False,
 }
-

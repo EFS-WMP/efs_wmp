@@ -89,6 +89,10 @@ class PickupManifestIntegrationAttempt(Base):
     __tablename__ = "pickup_manifest_integration_attempt"
     __table_args__ = (
         Index("ix_pickup_manifest_attempt_corr", "correlation_id", "occurred_at"),
+        CheckConstraint(
+            "outcome IN ('ACCEPTED','DUPLICATE_RETURNED','REJECTED','ERROR')",
+            name="ck_pickup_manifest_attempt_outcome",
+        ),
     )
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

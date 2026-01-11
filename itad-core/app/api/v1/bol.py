@@ -57,6 +57,9 @@ async def create_bol_endpoint(
             request_id=request.state.request_id,
             correlation_id=request.state.correlation_id,
         )
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=422, detail=str(exc))
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=409, detail="BOL number already exists")

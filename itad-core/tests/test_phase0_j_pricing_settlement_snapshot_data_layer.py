@@ -38,7 +38,7 @@ async def ensure_tables():
 def _demo_bol():
     return BOL(
         bol_number=f"BOL-{uuid.uuid4().hex[:6]}",
-        source_type=SourceType.PICKUP.value,
+        source_type=SourceType.DROP_OFF.value,
         customer_snapshot_json={},
         requirement_profile_snapshot_json={},
         requirement_profile_version="v1",

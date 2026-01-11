@@ -217,7 +217,7 @@ async def test_receiving_blind_redaction_and_admin_access():
     async with AsyncClient(app=app, base_url="http://testserver") as client:
         bol_payload = {
             "bol_number": "TEST-BOL-RECV-001",
-            "source_type": "PICKUP",
+            "source_type": "DROP_OFF",
             "customer_snapshot_json": {"name": "Test Customer"},
         }
         bol_response = await client.post(
@@ -276,7 +276,7 @@ async def test_receiving_no_update_delete_routes():
     async with AsyncClient(app=app, base_url="http://testserver") as client:
         bol_payload = {
             "bol_number": "TEST-BOL-RECV-002",
-            "source_type": "PICKUP",
+            "source_type": "DROP_OFF",
             "customer_snapshot_json": {"name": "Test Customer"},
         }
         bol_response = await client.post(

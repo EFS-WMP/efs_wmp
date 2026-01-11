@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, select
-from app.models.bol import BOL
+from app.models.bol import BOL, SourceType
 from app.models.domain_events import DomainEvent
 from app.models.bol_stage_gates import BolStageGate, BolGateType
 from app.models.workstreams import Workstream, WorkstreamType, WorkstreamStatus
@@ -56,6 +56,12 @@ async def create_bol(db: AsyncSession, bol_data: BOLCreate, created_by: str, req
         result = await db.execute(text("SELECT nextval('bol_number_seq')"))
         seq = result.scalar()
         bol_number = f"BOL-{settings.site}-{year}-{seq:06d}"
+
+    source_type_value = (
+        bol_data.source_type.value if hasattr(bol_data.source_type, "value") else bol_data.source_type
+    )
+    if source_type_value == SourceType.PICKUP.value:
+        raise ValueError("pickup_manifest_required_for_pickup")
     
     bol = BOL(
         bol_number=bol_number,
