@@ -50,26 +50,37 @@ docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml 
   sh -lc "(! grep -RIn --include='*.xml' -E '\b(attrs|states)\s*=' /mnt/extra-addons-custom/itad_core)"
 ```
 
-## C) E2E idempotency proof (API-level)
+## C) Idempotency Proof (Phase 1 Valid Evidence)
 
 Note: Port 8001 is UNVERIFIED; if different, update the URL once and keep it consistent.
+
+This is NOT valid idempotency evidence if the submit was failing (422). Valid evidence requires two successful submits with the same Idempotency-Key and the same manifest_fingerprint, returning the same IDs.
 
 ```powershell
 $idem="idem-$(New-Guid)"
 $corr="corr-$(New-Guid)"
 
-curl.exe -sS -X POST "http://localhost:8001/api/v1/pickup-manifests:submit" `
+# First submit (must succeed and return IDs)
+curl.exe -sS -D - -o C:\odoo_dev\docs\phase1\evidence\submit1_body.json `
+  -X POST "http://localhost:8001/api/v1/pickup-manifests:submit" `
   -H "Content-Type: application/json" `
   -H "Idempotency-Key: $idem" `
   -H "X-Correlation-Id: $corr" `
   -d @C:\odoo_dev\docs\phase1\sample_payloads\pickup_manifest_min.json
 
-curl.exe -sS -X POST "http://localhost:8001/api/v1/pickup-manifests:submit" `
+# Second submit (same Idempotency-Key + same payload => must return SAME IDs)
+curl.exe -sS -D - -o C:\odoo_dev\docs\phase1\evidence\submit2_body.json `
+  -X POST "http://localhost:8001/api/v1/pickup-manifests:submit" `
   -H "Content-Type: application/json" `
   -H "Idempotency-Key: $idem" `
   -H "X-Correlation-Id: $corr" `
   -d @C:\odoo_dev\docs\phase1\sample_payloads\pickup_manifest_min.json
 ```
+
+If either call returns 422, STOP: idempotency evidence is not valid yet. Fix payload (manifest_fingerprint) first.
+
+Extract and compare IDs from `submit1_body.json` and `submit2_body.json`:
+`pickup_manifest_id`, `bol_id`, and receiving anchor ID (if present). Expected: identical IDs and a duplicate outcome (DUPLICATE_RETURNED or equivalent).
 
 ## D) SoR guard proof (must reject operational-truth fields)
 
@@ -96,6 +107,11 @@ docker compose -p itad-core -f <CANON_ITAD_COMPOSE> logs --tail 300 itad-core | 
 
 Requirement: the log snippet must show correlation id + attempt outcome (ACCEPTED/DUPLICATE_RETURNED/REJECTED/ERROR) or equivalent.
 
+✅ Idempotency proven only if:
+- First submit succeeded and returned IDs
+- Second submit with same Idempotency-Key + same manifest_fingerprint returned the same IDs
+- Logs show correlation id + outcomes (ACCEPTED then DUPLICATE_RETURNED)
+
 ## Verification Log template
 
 Paste the following outputs:
@@ -104,7 +120,7 @@ Paste the following outputs:
 - docker compose ... ps
 - pytest output
 - Odoo scan output
-- both idempotency POST outputs
+- submit1/submit2 headers and bodies (evidence files)
 - 422 response output
 - log snippet for correlation id/outcome
 

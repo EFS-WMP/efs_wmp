@@ -21,6 +21,7 @@
                                 <field name="itad_manifest_no" readonly="1"/>
                                 <field name="itad_pickup_manifest_id" readonly="1"/>
                                 <field name="itad_bol_id" readonly="1"/>
+                                <field name="itad_receiving_weight_record_id" readonly="1"/>
                                 <field name="itad_receiving_id" readonly="1"/>
                             </group>
                             <group>

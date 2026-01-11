@@ -1,7 +1,7 @@
-from odoo.tests.common import SavepointCase
+from odoo.tests.common import TransactionCase
 
 
-class TestItadConfig(SavepointCase):
+class TestItadConfig(TransactionCase):
     def test_config_reads_params_and_fallback(self):
         config = self.env["itad.core.config"]
         icp = self.env["ir.config_parameter"].sudo()

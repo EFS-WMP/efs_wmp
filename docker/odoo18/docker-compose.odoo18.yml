@@ -9,7 +9,7 @@ services:
       - "8072:8072"
     volumes:
       - odoo18-web-data:/var/lib/odoo
-      - "C:\\odoo_dev\\addons\\common\\itad_core:/mnt/extra-addons-custom/itad_core"
+      - "C:\\odoo_dev\\addons\\common:/mnt/extra-addons-custom"
       - "C:\\odoo_dev\\addons\\odoo18:/mnt/extra-addons-odoo18"
       - "C:\\odoo_dev\\docker\\odoo18\\odoo.conf:/etc/odoo/odoo.conf:ro"
 

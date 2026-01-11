@@ -148,3 +148,8 @@ local.env
 *.pyo
 *.pyd
 .mypy_cache/
+
+# Local artifacts and backups
+backups/
+docs/phase1/evidence/
+SANITY_CHECK_REPORT.md

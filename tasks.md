@@ -7,6 +7,10 @@ Progress Summary
 - SoR lock: Odoo is SoR for scheduling/work orders/day routes/dispatch execution. ITAD Core is SoR for compliance/receiving/processing/custody/evidence/reconciliation/lots/shipments/disposition/certificates/settlement. Routific is optimizer-only. Acceptance/dispatch commits to Odoo; ITAD Core receives compliance artifacts later via pickup_manifest -> BOL -> receiving...
 - [ ] Enforce CODEX_CHECKLIST.md for every change set (Acceptance: PR/review must reference checklist)
 - [ ] Phase 1 Pre-Start Gate: Lock Routific caller = Odoo (Acceptance: docs updated in PHASE_0.md + glossary.md + object_map.md + PHASE_0_LOCK_REVIEW gate)
+- [x] Phase 1 SoR Guard Clarification: Operational-truth keys forbidden EXCEPT inside `*_snapshot_json` / `snapshot_json` (Acceptance: recursive guard with snapshot exemption implemented; tests passing)
+- [x] Phase 1 Verification Gate Commands (canonical paths):
+- `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec -T itad-core pytest -q`
+  - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 odoo -c /etc/odoo/odoo.conf -d <DB_NAME> -u itad_core --stop-after-init --test-enable`
 
 ### Phase 0 Step 1 — Canonical docs gate [x]
 Definition / Intent:
@@ -70,9 +74,9 @@ Acceptance Criteria:
 - `docs/phase0/PHASE_0_EVIDENCE_INDEX.md` lists all A–I items as PASS with doc/schema/migration/test/seed evidence links.
 - `docs/phase0/PHASE_0_VERIFICATION_LOG.md` records the latest run with the `alembic`, `pytest`, `seed_demo`, guard, validator, and grep outputs.
 - Verification commands executed:
-  1. `docker compose -f docker-compose.itad-core.yml exec itad-core alembic upgrade head`
-  2. `docker compose -f docker-compose.itad-core.yml exec itad-core python -m pytest -q`
-  3. `docker compose -f docker-compose.itad-core.yml exec itad-core python -m app.scripts.seed_demo`
+ 1. `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core alembic upgrade head`
+ 2. `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core python -m pytest -q`
+ 3. `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core python -m app.scripts.seed_demo`
   4. `powershell -ExecutionPolicy Bypass -File scripts/phase0_sor_guard.ps1`
   5. `python scripts/phase0_validate_evidence_index.py`
   6. `rg -n "\| (PARTIAL|FAIL) \|" docs/phase0/PHASE_0_EVIDENCE_INDEX.md`

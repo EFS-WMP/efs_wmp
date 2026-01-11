@@ -14,8 +14,13 @@
 - `docs/phase0/PHASE_1_READINESS_GATE.md`: Readiness checklist for gating Phase 1, including SoR guard verifications, evidence index PASS, pickup manifest contract lock, and readiness verification commands.
 - `docs/phase0/PHASE_0_LOCK_REVIEW.md`: Sign-off Bundle section now references the new closure pack docs, readiness checklist, and verification log.
 - `tasks.md`: Step 7 entry records the new closure pack artifacts, readiness gate commands, and the Phase 1 BLOCKED note until the gate passes.
+- `itad-core/app/api/v1/pickup_manifests.py`: Enhanced SoR guard to recursively scan payload but EXEMPT snapshot fields (`*_snapshot_json`, `snapshot_json`) from validation.
+- `itad-core/tests/test_sor_guard_snapshot_exemptions.py`: New test suite validating SoR guard snapshot exemption rules.
 
 ## Key Decisions
+
+### Phase 1 SoR Guard Clarification
+Operational-truth keys are forbidden EXCEPT inside snapshot fields. The SoR guard recursively scans but exempts keys matching `snapshot_json` or ending with `_snapshot_json`.
 
 - Phase 0 is now formally closed with the closure pack (`PHASE_0_SIGNOFF_SUMMARY.md`, `PHASE_0_RISK_REGISTER.md`, `PHASE_1_READINESS_GATE.md`), and Phase 1 remains BLOCKED until the readiness gate confirms PASS with SoR guard plus evidence validation.
 - Canonical Phase 0 docs keep the locked SoR wording, so rerunning the SoR guard and `rg -n "archive/" docs/phase0 -S` is required before Phase 1 planning resumes.
@@ -23,9 +28,9 @@
 
 ## Tests & Verification
 
-- `docker compose -f docker-compose.itad-core.yml exec itad-core alembic upgrade head`
-- `docker compose -f docker-compose.itad-core.yml exec itad-core python -m pytest -q` (46 passed in 17.06s)
-- `docker compose -f docker-compose.itad-core.yml exec itad-core python -m app.scripts.seed_demo`
+- `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core alembic upgrade head`
+- `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core python -m pytest -q` (46 passed in 17.06s)
+- `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core python -m app.scripts.seed_demo`
 - `powershell -ExecutionPolicy Bypass -File scripts/phase0_sor_guard.ps1` (SoR guard passes)
 - `python scripts/phase0_validate_evidence_index.py` (all referenced paths exist)
 - `rg -n "\| (PARTIAL|FAIL) \|" docs/phase0/PHASE_0_EVIDENCE_INDEX.md` (no matches)

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import os
-from odoo.tests.common import SavepointCase
+from odoo.tests.common import TransactionCase
 from odoo.modules.module import get_module_path
 
 
-class TestNoAttrsStates(SavepointCase):
+class TestNoAttrsStates(TransactionCase):
     """Guardrail test: Ensure Odoo 17+ XML compliance (no attrs=/states=)"""
 
     def test_no_attrs_or_states_in_xml_views(self):

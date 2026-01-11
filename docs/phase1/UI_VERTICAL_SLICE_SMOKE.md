@@ -100,6 +100,8 @@
 
 ## Phase 1 Verification: Idempotent Retry Behavior
 
+This is NOT valid idempotency evidence if the submit was failing (422). Valid evidence requires two successful submits with the same Idempotency-Key and the same manifest_fingerprint, returning the same IDs.
+
 ### Step 8: Click Button Again (Idempotent) - (1 min)
 
 1. With the order still open (still in SENT state), click **Submit Pickup Manifest** button again
@@ -299,6 +301,8 @@ env["ir.config_parameter"].sudo().set_param("itad_core.token", "<token>")
      - `itad_geocode_gate` (if returned)
 
 ## Idempotency / No Duplicates
+If a submit returned 422, STOP: idempotency evidence is not valid yet. Fix manifest_fingerprint and repeat with a successful submit.
+
 Option A (retry from Outbox):
 1) Run the cron again or use **Retry** if the row is FAILED.
 2) Acceptance:

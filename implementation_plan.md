@@ -14,7 +14,7 @@
   - Phase 0.J: Commercials & Pricing Addendum (policy lock + settlement snapshots) - Complete
   - Phase 0 Step 7: Closure Pack & Readiness Gate - Complete
   - Phase 0 Step 6: Evidence Index PASS + verification run recorded - Complete
-- **Maintenance:** Idempotency contract enforced; geocode cache gates in place; pricing snapshot/adjustment data layer added; test suite passing in container (`docker compose -f docker-compose.itad-core.yml exec itad-core pytest -q`).
+- **Maintenance:** Idempotency contract enforced; geocode cache gates in place; pricing snapshot/adjustment data layer added; test suite passing in container (`docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core pytest -q`).
 
 ## Roadmap Alignment
 - Canonical roadmap: docs/ROADMAP.md
@@ -37,9 +37,9 @@
 - **Objective:** Confirm every Phase 0 checklist item now lists PASS evidence and record the final verification run that exercises migrations/tests/seed/guard/validator/grep commands.
 - **Verification:** `docs/phase0/PHASE_0_EVIDENCE_INDEX.md` shows PASS statuses for A1–I30; `docs/phase0/PHASE_0_VERIFICATION_LOG.md` now contains the 2026-01-03 05:56 UTC row with the list of commands.
 - **Commands executed:**
-  1. `docker compose -f docker-compose.itad-core.yml exec itad-core alembic upgrade head`
-  2. `docker compose -f docker-compose.itad-core.yml exec itad-core python -m pytest -q`
-  3. `docker compose -f docker-compose.itad-core.yml exec itad-core python -m app.scripts.seed_demo`
+  1. `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core alembic upgrade head`
+  2. `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core python -m pytest -q`
+  3. `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core python -m app.scripts.seed_demo`
   4. `powershell -ExecutionPolicy Bypass -File scripts/phase0_sor_guard.ps1`
   5. `python scripts/phase0_validate_evidence_index.py`
   6. `rg -n "\| (PARTIAL|FAIL) \|" docs/phase0/PHASE_0_EVIDENCE_INDEX.md`
@@ -65,10 +65,46 @@
 - **Acceptance Criteria:** tasks.md shows 31/31 checked with evidence and Step 7 documented; PHASE_0_LOCK_REVIEW.md references the closure pack; manifest.md/implementation_plan.md describe the readiness gate; Phase 1 remains BLOCKED until the readiness gate passes and the closure pack is approved.
 
 ### Phase 1: Core Integration (BLOCKED until Phase 0 sign-off)
-- **Priority:** High
-- **Status:** Blocked
-- **Tasks:** Plan Odoo ↔ ITAD Core integration using pickup_manifest/BOL binding and external_id_map; align Idempotency-Key/header contract across APIs; ensure Routific invocation stays in Odoo with routific_job_id/input_hash stored there (ITAD Core references only).
-- **Acceptance Criteria:** Integration plan approved; Routific caller decision documented; `docs/phase0/PHASE_1_READINESS_GATE.md` reports PASS (SoR guard, evidence index, pickup manifest contract lock, readiness commands); Phase 1 remains BLOCKED until the readiness gate clears and closure pack signoff is recorded.
+
+#### Phase 1 Unblocker (MUST pass before Phase 1 gates)
+**Objective:** Make Odoo discover + load `itad_core` so Phase 1 Odoo tests and UI fields/actions exist.
+
+**Evidence from sanity check (current blockers):**
+- itad_core not installable / module not found; module path False.
+- `addons_path` includes `/mnt/extra-addons-custom/itad_core` (likely module folder vs addons root).
+- prior test run failed to start due to port 8069 already in use.
+
+**Unblocker Tasks (explicit)**
+1) Fix addons_path/mount layout so addons_path points to an addons root (e.g. `/mnt/extra-addons-custom`), not the module folder.
+2) Verify `__manifest__.py` has `installable: True` and valid `depends`.
+3) Verify discovery:
+   - `mm.get_module_path('itad_core') != False`
+   - no “not installable, skipped”
+   - registry contains `itad.core.outbox` and fsm.order fields + action exist
+
+**Unblocker Gate Commands**
+- Discovery:
+  - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 sh -lc "ls -la /mnt/extra-addons-custom && ls -la /mnt/extra-addons-custom/itad_core/__manifest__.py"`
+  - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 sh -lc "python3 - <<'PY'
+import ast, pathlib
+p = pathlib.Path('/mnt/extra-addons-custom/itad_core/__manifest__.py')
+d = ast.literal_eval(p.read_text(encoding='utf-8'))
+print('installable:', d.get('installable'))
+print('depends:', d.get('depends'))
+PY"`
+  - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 sh -lc "printf '%s\n' \"import odoo.modules.module as mm\" \"print(mm.get_module_path('itad_core'))\" | odoo shell -c /etc/odoo/odoo.conf -d odoo18_fs"`
+
+#### Robust Gate Commands (canonical paths; avoids port conflicts)
+- ITAD Core:
+  - `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec -T itad-core pytest -q`
+- Odoo (one-off container; avoids 8069 collisions):
+  - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml run --rm odoo18 odoo -c /etc/odoo/odoo.conf -d odoo18_fs -u itad_core --test-enable --stop-after-init --no-http`
+
+**Tests:** UNVERIFIED until Unblocker passes and gate command outputs are attached.
+
+**Repo cleanliness (must pass before recording evidence):**
+- `git status` must be clean (or changes committed as doc/evidence update).
+
 
 ### Phase 2: Advanced Features
 - **Priority:** Medium

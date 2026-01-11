@@ -7,8 +7,6 @@
             <field name="code">model._cron_process_itad_outbox()</field>
             <field name="interval_number">5</field>
             <field name="interval_type">minutes</field>
-            <field name="numbercall">-1</field>
-            <field name="doall">False</field>
             <field name="active">True</field>
         </record>
     </data>

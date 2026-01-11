@@ -41,6 +41,10 @@ class ItadCoreOutbox(models.Model):
     itad_bol_id = fields.Char(readonly=True)
     itad_geocode_gate = fields.Char(readonly=True)
     itad_receiving_id = fields.Char(readonly=True)
+    itad_receiving_weight_record_id = fields.Char(
+        related="order_id.itad_receiving_weight_record_id",
+        readonly=True,
+    )
 
     def _get_config(self):
         # Expect config model to return (base_url, token)
@@ -62,6 +66,8 @@ class ItadCoreOutbox(models.Model):
             headers["Authorization"] = f"Bearer {token}"
 
         payload = json.loads(self.payload_json)
+        if "manifest_fingerprint" not in payload:
+            payload["manifest_fingerprint"] = self.payload_sha256
         resp = requests.post(url, json=payload, headers=headers, timeout=15)
 
         if 200 <= resp.status_code < 300:
@@ -74,6 +80,7 @@ class ItadCoreOutbox(models.Model):
 
     def _record_success(self, data: dict):
         now = fields.Datetime.now()
+        receiving_weight_record_id = data.get("receiving_weight_record_id") or data.get("receiving_id")
         self.write(
             {
                 "state": "sent",
@@ -90,21 +97,23 @@ class ItadCoreOutbox(models.Model):
         )
 
         # Phase 1: FSM is SoR; update read-only ITAD refs on order
-        self.order_id.write(
-            {
-                "itad_submit_state": "sent",
-                "itad_pickup_manifest_id": data.get("pickup_manifest_id"),
-                "itad_manifest_no": data.get("manifest_no"),
-                "itad_manifest_status": data.get("status"),
-                "itad_bol_id": data.get("bol_id"),
-                "itad_geocode_gate": data.get("geocode_gate"),
-                "itad_receiving_id": data.get("receiving_id"),
-                "itad_last_submit_at": now,
-                "itad_last_error": False,
-                "itad_outbox_id": self.id,
-                "itad_outbox_last_id": self.id,
-            }
-        )
+        order_vals = {
+            "itad_submit_state": "sent",
+            "itad_pickup_manifest_id": data.get("pickup_manifest_id"),
+            "itad_manifest_no": data.get("manifest_no"),
+            "itad_manifest_status": data.get("status"),
+            "itad_bol_id": data.get("bol_id"),
+            "itad_geocode_gate": data.get("geocode_gate"),
+            "itad_last_submit_at": now,
+            "itad_last_error": False,
+            "itad_outbox_id": self.id,
+            "itad_outbox_last_id": self.id,
+        }
+        if receiving_weight_record_id:
+            order_vals["itad_receiving_weight_record_id"] = receiving_weight_record_id
+            if "itad_receiving_id" in self.order_id._fields and not self.order_id.itad_receiving_id:
+                order_vals["itad_receiving_id"] = data.get("receiving_id") or receiving_weight_record_id
+        self.order_id.write(order_vals)
 
     def _record_failure(self, error_message: str):
         now = fields.Datetime.now()

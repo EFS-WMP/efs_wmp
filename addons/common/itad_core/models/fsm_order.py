@@ -26,6 +26,11 @@ class FsmOrder(models.Model):
     itad_manifest_status = fields.Char(readonly=True, copy=False)
     itad_bol_id = fields.Char(readonly=True, copy=False)
     itad_receiving_id = fields.Char(readonly=True, copy=False, string="Receiving ID")
+    itad_receiving_weight_record_id = fields.Char(
+        readonly=True,
+        copy=False,
+        string="Receiving Weight Record ID",
+    )
     itad_geocode_gate = fields.Char(readonly=True, copy=False, string="Geocode Gate")
     itad_last_submit_at = fields.Datetime(readonly=True, copy=False)
     itad_last_error = fields.Text(readonly=True, copy=False)
