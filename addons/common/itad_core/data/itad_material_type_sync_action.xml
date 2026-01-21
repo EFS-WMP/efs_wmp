@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Phase 2.3: Material Taxonomy Sync Server Action (for "Sync Now" button) -->
+        
+        <record id="action_material_type_sync_now" model="ir.actions.server">
+            <field name="name">Sync Material Taxonomy Now</field>
+            <field name="model_id" ref="model_itad_material_sync"/>
+            <field name="state">code</field>
+            <field name="code">action = model.action_sync_now()</field>
+        </record>
+    </data>
+</odoo>

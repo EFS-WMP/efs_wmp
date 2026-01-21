@@ -40,3 +40,4 @@ from app.models.pickup_manifest import (
 )
 from app.models.pricing import PricingExternalRef
 from app.models.settlement import Settlement, SettlementPricingSnapshot, SettlementAdjustmentEvent
+from app.models.material_type import MaterialType

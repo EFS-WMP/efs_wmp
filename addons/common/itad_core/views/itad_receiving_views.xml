@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Receiving Dashboard Tree View -->
+    <record id="view_itad_receiving_dashboard_tree" model="ir.ui.view">
+        <field name="name">itad.receiving.dashboard.tree</field>
+        <field name="model">fsm.order</field>
+        <field name="arch" type="xml">
+            <list string="Receiving Dashboard" create="false" edit="false">
+                <field name="name" string="Order Reference"/>
+                <field name="location_id" string="Location"/>
+                <field name="itad_manifest_no" string="Manifest No"/>
+                <field name="itad_bol_id" string="BOL ID"/>
+                <field name="date_end" string="Completed Date"/>
+                <field name="itad_receipt_state" string="Receipt Status" widget="badge" 
+                       decoration-warning="itad_receipt_state == 'pending'"
+                       decoration-success="itad_receipt_state == 'received'"
+                       decoration-danger="itad_receipt_state == 'exception'"/>
+                <field name="itad_receipt_weight_lbs" string="Weight (lbs)" optional="show"/>
+                <field name="itad_receipt_material_code" string="Material" optional="show"/>
+                <button name="action_open_receiving_wizard" 
+                        string="Confirm Receipt" 
+                        type="object" 
+                        class="btn-primary"
+                        invisible="itad_receipt_state != 'pending'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Receiving Dashboard Action -->
+    <record id="action_itad_receiving_dashboard" model="ir.actions.act_window">
+        <field name="name">Receiving Dashboard</field>
+        <field name="res_model">fsm.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_itad_receiving_dashboard_tree"/>
+        <field name="domain">[('itad_pickup_manifest_id', '!=', False), ('itad_bol_id', '!=', False)]</field>
+        <field name="context">{
+            'search_default_pending_receipt': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No manifests ready for receipt
+            </p>
+            <p>
+                Pickup manifests will appear here after successful submission (Phase 1).
+                Click "Confirm Receipt" to record physical receipt in ITAD Core.
+            </p>
+        </field>
+    </record>
+
+    <!-- Search View for Receiving Dashboard -->
+    <record id="view_itad_receiving_dashboard_search" model="ir.ui.view">
+        <field name="name">itad.receiving.dashboard.search</field>
+        <field name="model">fsm.order</field>
+        <field name="arch" type="xml">
+            <search string="Receiving Dashboard">
+                <field name="name" string="Order Reference"/>
+                <field name="location_id" string="Location"/>
+                <field name="itad_manifest_no" string="Manifest No"/>
+                <field name="itad_bol_id" string="BOL ID"/>
+                <filter name="pending_receipt" string="Pending Receipt" 
+                        domain="[('itad_receipt_state', '=', 'pending')]"/>
+                <filter name="received" string="Received" 
+                        domain="[('itad_receipt_state', '=', 'received')]"/>
+                <filter name="exception" string="Exception" 
+                        domain="[('itad_receipt_state', '=', 'exception')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_by_receipt_state" string="Receipt Status" 
+                            context="{'group_by': 'itad_receipt_state'}"/>
+                    <filter name="group_by_location" string="Location" 
+                            context="{'group_by': 'location_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Receiving Wizard Form View -->
+    <record id="view_itad_receiving_wizard_form" model="ir.ui.view">
+        <field name="name">itad.receiving.wizard.form</field>
+        <field name="model">itad.receiving.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Confirm Receipt">
+                <!-- Phase 2.2: Error state banner -->
+                <div class="alert alert-danger" role="alert" 
+                     modifiers='{"invisible":[["error_state","=",false]]}'>
+                    <strong>Error:</strong>
+                    <field name="last_error_message" readonly="1" nolabel="1"/>
+                </div>
+                
+                <group>
+                    <group string="Manifest Information" col="2">
+                        <field name="manifest_no" readonly="1"/>
+                        <field name="bol_id" readonly="1"/>
+                        <field name="customer_name" readonly="1"/>
+                        <field name="location_name" readonly="1"/>
+                        <field name="completed_date" readonly="1"/>
+                    </group>
+                    <group string="Receipt Details" col="2">
+                        <field name="material_type_id" required="1" 
+                               options="{'no_create': True, 'no_open': True}"/>
+                        <field name="actual_weight_lbs" required="1"/>
+                        <field name="receipt_timestamp" required="1"/>
+                        <field name="operator_notes" colspan="2"/>
+                    </group>
+                </group>
+                
+                <!-- Phase 2.2: Audit fields (read-only, for debugging) -->
+                <group string="Audit Information" modifiers='{"invisible":[["attempt_count","=",0]]}'>
+                    <field name="attempt_count" readonly="1"/>
+                    <field name="last_attempt_at" readonly="1"/>
+                    <field name="successful_at" readonly="1"/>
+                    <field name="api_response_id" readonly="1"/>
+                </group>
+                
+                <footer>
+                    <button name="action_confirm_receipt" 
+                            string="Confirm Receipt" 
+                            type="object" 
+                            class="btn-primary"
+                            modifiers='{"invisible":[["error_state","=",true]]}'/>
+                    <button name="action_retry_receipt" 
+                            string="Retry" 
+                            type="object" 
+                            class="btn-warning"
+                            modifiers='{"invisible":[["error_state","=",false]]}'/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+                <!-- Hidden fields for context -->
+                <field name="fsm_order_id" invisible="1"/>
+                <field name="pickup_manifest_id" invisible="1"/>
+                <field name="error_state" invisible="1"/>
+                <field name="original_idempotency_key" invisible="1"/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Menu Item: ITAD Core > Receiving Dashboard -->
+    <menuitem id="menu_itad_receiving_dashboard"
+              name="Receiving Dashboard"
+              parent="fieldservice.operations"
+              action="action_itad_receiving_dashboard"
+              sequence="20"/>
+
+</odoo>

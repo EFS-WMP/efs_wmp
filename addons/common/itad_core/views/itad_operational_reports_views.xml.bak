@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Phase 2.4c: Operational Reports Views -->
+    
+    <!-- Received Weight by Material Type - Pivot View -->
+    <record id="view_itad_receiving_weight_pivot" model="ir.ui.view">
+        <field name="name">itad.receiving.weight.pivot</field>
+        <field name="model">fsm.order</field>
+        <field name="arch" type="xml">
+            <pivot string="Received Weight by Material (Operational - Not Billing)">
+                <field name="material_type_code" type="row"/>
+                <field name="receiving_weight" type="measure"/>
+                <field name="date_order" type="col" interval="month"/>
+            </pivot>
+        </field>
+    </record>
+    
+    <!-- Received Weight by Material Type - List View -->
+    <record id="view_itad_receiving_weight_tree" model="ir.ui.view">
+        <field name="name">itad.receiving.weight.tree</field>
+        <field name="model">fsm.order</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <tree string="Received Weight by Material (Operational - Not Billing)" create="false" delete="false" edit="false">
+                <field name="date_order"/>
+                <field name="name" string="Order"/>
+                <field name="partner_id" string="Customer"/>
+                <field name="material_type_code"/>
+                <field name="receiving_weight"/>
+                <field name="stage_id"/>
+            </tree>
+        </field>
+    </record>
+    
+    <!-- Received Weight by Material Type - Search View -->
+    <record id="view_itad_receiving_weight_search" model="ir.ui.view">
+        <field name="name">itad.receiving.weight.search</field>
+        <field name="model">fsm.order</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <search string="Search Receiving Weight">
+                <field name="material_type_code"/>
+                <field name="partner_id"/>
+                <filter string="This Month" name="this_month" domain="[('date_order', '&gt;=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d'))]"/>
+                <filter string="Last 30 Days" name="last_30" domain="[('date_order', '&gt;=', (context_today() - relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <filter string="This Year" name="this_year" domain="[('date_order', '&gt;=', (context_today() - relativedelta(month=1, day=1)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter string="With Weight" name="has_weight" domain="[('receiving_weight', '&gt;', 0)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Material Type" name="group_material" context="{'group_by': 'material_type_code'}"/>
+                    <filter string="Customer" name="group_customer" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Month" name="group_month" context="{'group_by': 'date_order:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Received Weight by Material - Action -->
+    <record id="action_itad_receiving_weight_report" model="ir.actions.act_window">
+        <field name="name">Received Weight by Material (Operational)</field>
+        <field name="res_model">fsm.order</field>
+        <field name="view_mode">pivot,tree</field>
+        <field name="view_id" ref="view_itad_receiving_weight_pivot"/>
+        <field name="context">{'search_default_has_weight': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No receiving data yet
+            </p>
+            <p>
+                <strong>Operational Report (Not Billing)</strong><br/>
+                This report shows received weight by material type for operational tracking.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Customer Receipt History - List View -->
+    <record id="view_itad_customer_receipt_tree" model="ir.ui.view">
+        <field name="name">itad.customer.receipt.tree</field>
+        <field name="model">fsm.order</field>
+        <field name="priority">98</field>
+        <field name="arch" type="xml">
+            <tree string="Customer Receipt History (Operational - Not Billing)" create="false" delete="false" edit="false">
+                <field name="date_order"/>
+                <field name="name" string="Order"/>
+                <field name="partner_id" string="Customer"/>
+                <field name="material_type_code"/>
+                <field name="receiving_weight"/>
+                <field name="receiving_notes" optional="hide"/>
+                <field name="stage_id"/>
+            </tree>
+        </field>
+    </record>
+    
+    <!-- Customer Receipt History - Search View -->
+    <record id="view_itad_customer_receipt_search" model="ir.ui.view">
+        <field name="name">itad.customer.receipt.search</field>
+        <field name="model">fsm.order</field>
+        <field name="priority">98</field>
+        <field name="arch" type="xml">
+            <search string="Search Customer Receipts">
+                <field name="partner_id"/>
+                <field name="material_type_code"/>
+                <field name="name"/>
+                <filter string="This Month" name="this_month" domain="[('date_order', '&gt;=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d'))]"/>
+                <filter string="Last 90 Days" name="last_90" domain="[('date_order', '&gt;=', (context_today() - relativedelta(days=90)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Customer" name="group_customer" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Material Type" name="group_material" context="{'group_by': 'material_type_code'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'date_order:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Customer Receipt History - Action -->
+    <record id="action_itad_customer_receipt_report" model="ir.actions.act_window">
+        <field name="name">Customer Receipt History (Operational)</field>
+        <field name="res_model">fsm.order</field>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="view_itad_customer_receipt_tree"/>
+        <field name="search_view_id" ref="view_itad_customer_receipt_search"/>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No receipt history yet
+            </p>
+            <p>
+                <strong>Operational Report (Not Billing)</strong><br/>
+                This report shows customer receipt history for operational tracking.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Reports Menu -->
+    <menuitem id="menu_itad_reports"
+              name="Reports"
+              parent="menu_itad_root"
+              sequence="30"/>
+    
+    <menuitem id="menu_itad_report_receiving_weight"
+              name="Received Weight by Material"
+              parent="menu_itad_reports"
+              action="action_itad_receiving_weight_report"
+              groups="itad_core.group_receiving_manager"
+              sequence="10"/>
+    
+    <menuitem id="menu_itad_report_customer_receipt"
+              name="Customer Receipt History"
+              parent="menu_itad_reports"
+              action="action_itad_customer_receipt_report"
+              groups="itad_core.group_receiving_manager"
+              sequence="20"/>
+</odoo>

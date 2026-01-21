@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Phase 2.5: Operations Health Views -->
+    
+    <!-- ===================== OPS ALERT VIEWS ===================== -->
+    
+    <!-- Ops Alert - Kanban View (Dashboard Cards) -->
+    <record id="view_itad_ops_alert_kanban" model="ir.ui.view">
+        <field name="name">itad.ops.alert.kanban</field>
+        <field name="model">itad.ops.alert</field>
+        <field name="arch" type="xml">
+            <kanban create="false" edit="false" class="o_kanban_dashboard">
+                <field name="code"/>
+                <field name="severity"/>
+                <field name="message"/>
+                <field name="metric_value"/>
+                <field name="threshold_value"/>
+                <field name="action_hint"/>
+                <field name="last_evaluated_at"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click o_kanban_card_{{ severity == 'critical' and 'danger' or severity == 'warn' and 'warning' or 'success' }}">
+                            <div class="o_kanban_card_header">
+                                <div class="o_kanban_card_header_title">
+                                    <span class="o_kanban_record_title">
+                                        <t t-esc="record.code.value"/>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="o_kanban_card_content">
+                                <div class="o_kanban_primary_left">
+                                    <span t-attf-class="badge {{ severity == 'critical' and 'text-bg-danger' or severity == 'warn' and 'text-bg-warning' or 'text-bg-success' }}">
+                                        <t t-esc="record.severity.value"/>
+                                    </span>
+                                </div>
+                                <div class="mt-2">
+                                    <t t-esc="record.message.value"/>
+                                </div>
+                                <div class="mt-2 text-muted small">
+                                    <span t-if="record.action_hint.value">
+                                        <i class="fa fa-arrow-right"/> <t t-esc="record.action_hint.value"/>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="o_kanban_card_footer text-muted small">
+                                Last checked: <t t-esc="record.last_evaluated_at.value"/>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    
+    <!-- Ops Alert - Tree View -->
+    <record id="view_itad_ops_alert_tree" model="ir.ui.view">
+        <field name="name">itad.ops.alert.tree</field>
+        <field name="model">itad.ops.alert</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false">
+                <field name="code"/>
+                <field name="severity" widget="badge"
+                       decoration-danger="severity == 'critical'"
+                       decoration-warning="severity == 'warn'"
+                       decoration-success="severity == 'ok'"/>
+                <field name="message"/>
+                <field name="metric_value"/>
+                <field name="threshold_value"/>
+                <field name="action_hint"/>
+                <field name="last_evaluated_at"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Ops Alert - Form View -->
+    <record id="view_itad_ops_alert_form" model="ir.ui.view">
+        <field name="name">itad.ops.alert.form</field>
+        <field name="model">itad.ops.alert</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="code"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="severity" widget="badge"
+                                   decoration-danger="severity == 'critical'"
+                                   decoration-warning="severity == 'warn'"
+                                   decoration-success="severity == 'ok'"/>
+                            <field name="metric_value"/>
+                            <field name="threshold_value"/>
+                        </group>
+                        <group>
+                            <field name="action_hint"/>
+                            <field name="last_evaluated_at"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="message"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Ops Alert - Actions -->
+    <record id="action_itad_ops_alert_dashboard" model="ir.actions.act_window">
+        <field name="name">Health Dashboard</field>
+        <field name="res_model">itad.ops.alert</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No alerts configured
+            </p>
+            <p>Run "Compute Alerts" to generate health status cards.</p>
+        </field>
+    </record>
+    
+    <!-- ===================== SYNC STATUS VIEWS ===================== -->
+    
+    <!-- Sync State - Form View -->
+    <record id="view_itad_taxonomy_sync_state_ops_form" model="ir.ui.view">
+        <field name="name">itad.taxonomy.sync.state.ops.form</field>
+        <field name="model">itad.taxonomy.sync.state</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <form create="false" delete="false">
+                <header>
+                    <button name="%(itad_core.action_sync_taxonomy)d" type="action"
+                            string="Sync Now" class="btn-primary"
+                            groups="itad_core.group_receiving_manager"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object"
+                                name="action_view_audit_logs" icon="fa-list">
+                            <span class="o_stat_text">Audit Logs</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>Taxonomy Sync Status</h1>
+                    </div>
+                    <group>
+                        <group string="Status">
+                            <field name="sync_state" widget="badge"
+                                   decoration-danger="sync_state == 'error'"
+                                   decoration-warning="sync_state == 'warn'"
+                                   decoration-success="sync_state == 'ok'"/>
+                            <field name="stale_age_hours" widget="float" string="Hours Since Sync"/>
+                        </group>
+                        <group string="Timestamps">
+                            <field name="last_success_at"/>
+                            <field name="last_attempt_at"/>
+                            <field name="last_cursor_updated_since"/>
+                        </group>
+                    </group>
+                    <group string="Last Error" invisible="not last_error">
+                        <field name="last_error" nolabel="1"/>
+                    </group>
+                    <group string="Stats (Last Run)" invisible="not stats_last_run">
+                        <field name="stats_last_run" nolabel="1"/>
+                    </group>
+                    <group string="Break-Glass" invisible="not break_glass_reason">
+                        <field name="break_glass_reason" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Sync State Action (singleton) -->
+    <record id="action_taxonomy_sync_state" model="ir.actions.act_window">
+        <field name="name">Sync Status</field>
+        <field name="res_model">itad.taxonomy.sync.state</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_itad_taxonomy_sync_state_ops_form"/>
+        <field name="target">current</field>
+    </record>
+    
+    <!-- ===================== OUTBOX HEALTH VIEWS ===================== -->
+    
+    <!-- Outbox - Failed Filter Action -->
+    <record id="action_outbox_failed" model="ir.actions.act_window">
+        <field name="name">Failed Outbox</field>
+        <field name="res_model">itad.core.outbox</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'failed')]</field>
+        <field name="context">{'search_default_failed': 1}</field>
+    </record>
+    
+    <!-- Outbox Health Action (all) -->
+    <record id="action_outbox_health" model="ir.actions.act_window">
+        <field name="name">Outbox Health</field>
+        <field name="res_model">itad.core.outbox</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No outbox records
+            </p>
+        </field>
+    </record>
+    
+    <!-- ===================== RECEIVING QUEUES ===================== -->
+    
+    <!-- Exceptions Queue -->
+    <record id="action_receiving_exceptions" model="ir.actions.act_window">
+        <field name="name">Receipt Exceptions</field>
+        <field name="res_model">fsm.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('itad_receipt_state', '=', 'exception')]</field>
+    </record>
+    
+    <!-- Pending Queue -->
+    <record id="action_receiving_pending" model="ir.actions.act_window">
+        <field name="name">Pending Receipts</field>
+        <field name="res_model">fsm.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('itad_receipt_state', '=', 'pending')]</field>
+    </record>
+    
+    <!-- ===================== VARIANCE REVIEW ===================== -->
+    
+    <!-- Variance Queue Tree View -->
+    <record id="view_fsm_order_variance_tree" model="ir.ui.view">
+        <field name="name">fsm.order.variance.tree</field>
+        <field name="model">fsm.order</field>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="customer_name"/>
+                <field name="itad_manifest_no"/>
+                <field name="itad_receipt_weight_lbs"/>
+                <field name="itad_variance_reason"/>
+                <field name="itad_variance_review_state" widget="badge"
+                       decoration-warning="itad_variance_review_state == 'pending'"
+                       decoration-success="itad_variance_review_state == 'resolved'"/>
+                <button name="action_resolve_variance" type="object"
+                        string="Resolve" class="btn-primary"
+                        invisible="itad_variance_review_state != 'pending'"
+                        groups="itad_core.group_receiving_manager"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Variance Queue Action -->
+    <record id="action_variance_review_queue" model="ir.actions.act_window">
+        <field name="name">Variance Review Queue</field>
+        <field name="res_model">fsm.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_fsm_order_variance_tree"/>
+        <field name="domain">[('itad_variance_review_state', '=', 'pending')]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No variances pending review
+            </p>
+        </field>
+    </record>
+    
+</odoo>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Phase 2.3 Extra Hardening: Taxonomy Audit Log Retention Cron -->
+        
+        <record id="ir_cron_taxonomy_audit_retention" model="ir.cron">
+            <field name="name">ITAD Core: Taxonomy Audit Log Retention</field>
+            <field name="model_id" ref="model_itad_taxonomy_audit_log"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_apply_retention_policy()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+
+            <field name="active" eval="True"/>
+
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Phase 2.2a: Cron job to archive old receipt audit logs -->
+        <record id="cron_archive_receipt_audit_logs" model="ir.cron">
+            <field name="name">Archive Old Receipt Audit Logs</field>
+            <field name="model_id" ref="model_itad_receipt_audit_log"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_archive_old_receipt_audit_logs()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

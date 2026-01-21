@@ -17,6 +17,38 @@ docker compose -p itad-core -f <CANON_ITAD_COMPOSE> ps
 docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml ps
 ```
 
+## API healthcheck (manual)
+
+Locate the script path inside the Odoo container:
+
+```powershell
+docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 sh -lc `
+  "pwd; ls -la; find / -maxdepth 4 -type f -name api_healthcheck.sh 2>/dev/null | head"
+```
+
+If the script is not found (repo root not mounted), copy it into the container and set permissions:
+
+```powershell
+docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml cp `
+  scripts/api_healthcheck.sh odoo18:/tmp/api_healthcheck.sh
+docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T --user root odoo18 sh -lc `
+  "chmod +x /tmp/api_healthcheck.sh"
+```
+
+Run the healthcheck (validated path):
+
+```powershell
+docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 sh -lc `
+  "/tmp/api_healthcheck.sh"
+```
+
+Optional overrides:
+
+```powershell
+docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 sh -lc `
+  "TARGET_URL=http://host.docker.internal:8001/openapi.json MAX_RETRIES=5 SLEEP_TIME=2 /tmp/api_healthcheck.sh"
+```
+
 ## Step 0 - Record Test-Path evidence (copy/paste)
 
 Run these and paste the outputs into the Verification Log section:

@@ -77,12 +77,6 @@
         </record>
 
         <menuitem
-            id="menu_itad_root"
-            name="ITAD Core"
-            parent="fieldservice.root"
-            sequence="60"
-        />
-        <menuitem
             id="menu_itad_outbox"
             name="Outbox"
             parent="menu_itad_root"

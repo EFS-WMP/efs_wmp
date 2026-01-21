@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Phase 2.2: RBAC Group for Receiving Managers -->
+    <record id="group_receiving_manager" model="res.groups">
+        <field name="name">ITAD Receiving Manager</field>
+        <field name="category_id" ref="base.module_category_field_service"/>
+        <field name="comment">Users who can confirm physical receipt of pickup manifests and create receiving weight records in ITAD Core.</field>
+    </record>
+</odoo>

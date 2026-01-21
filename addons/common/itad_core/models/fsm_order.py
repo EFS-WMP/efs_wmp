@@ -5,7 +5,7 @@ import hashlib
 import json
 import uuid
 
-from odoo import _, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 
@@ -37,6 +37,109 @@ class FsmOrder(models.Model):
     itad_pickup_manifest_id = fields.Char(readonly=True, copy=False, string="ITAD Pickup Manifest ID")
     itad_outbox_id = fields.Many2one("itad.core.outbox", readonly=True, copy=False)
     itad_outbox_last_id = fields.Many2one("itad.core.outbox", string="Last Outbox Record", readonly=True, copy=False)
+
+    customer_name = fields.Char(
+        compute="_compute_customer_name",
+        store=True,
+        readonly=True,
+        string="Customer",
+    )
+
+    # Phase 2.1: Receipt confirmation state (operational visibility only; ITAD Core is SoR)
+    itad_receipt_state = fields.Selection(
+        selection=[
+            ("pending", "Pending Receipt"),
+            ("received", "Received"),
+            ("exception", "Receipt Exception"),
+        ],
+        string="ITAD Receipt Status",
+        readonly=True,
+        copy=False,
+        help="Tracks physical receipt confirmation at the facility. ITAD Core is SoR for receiving_weight_record.",
+    )
+    itad_receipt_confirmed_at = fields.Datetime(
+        string="Receipt Confirmed At",
+        readonly=True,
+        copy=False,
+    )
+    itad_receipt_weight_lbs = fields.Float(
+        string="Receipt Weight (lbs)",
+        readonly=True,
+        copy=False,
+        digits=(12, 2),
+    )
+    itad_receipt_material_code = fields.Char(
+        string="Receipt Material Code",
+        readonly=True,
+        copy=False,
+    )
+    itad_receipt_notes = fields.Text(
+        string="Receipt Notes",
+        readonly=True,
+        copy=False,
+        help="Notes entered during receiving (from the Receiving Wizard).",
+    )
+    
+    # Phase 2.2b: Persistent idempotency key for retry support
+    itad_receipt_idempotency_key = fields.Char(
+        string="Receipt Idempotency Key",
+        readonly=True,
+        copy=False,
+        help="Stable idempotency key for receipt confirmation retries. Backfilled by migration for legacy exception records.",
+    )
+    
+    # Phase 2.5: Data Quality - Variance Fields
+    itad_variance_flag = fields.Boolean(
+        string="Variance Flag",
+        default=False,
+        index=True,
+        copy=False,
+        help="True if order has data quality variance requiring review",
+    )
+    itad_variance_reason = fields.Text(
+        string="Variance Reason",
+        copy=False,
+        help="Description of the variance detected",
+    )
+    itad_variance_review_state = fields.Selection(
+        [
+            ("none", "None"),
+            ("pending", "Pending Review"),
+            ("resolved", "Resolved"),
+        ],
+        string="Variance Review State",
+        default="none",
+        index=True,
+        copy=False,
+    )
+    itad_variance_reviewed_by = fields.Many2one(
+        "res.users",
+        string="Reviewed By",
+        readonly=True,
+        copy=False,
+    )
+    itad_variance_reviewed_at = fields.Datetime(
+        string="Reviewed At",
+        readonly=True,
+        copy=False,
+    )
+    itad_variance_review_note = fields.Text(
+        string="Review Notes",
+        copy=False,
+    )
+
+    @api.depends("location_id.partner_id.name", "location_id.name")
+    def _compute_customer_name(self):
+        for rec in self:
+            location = rec.location_id
+            if location:
+                rec.customer_name = (
+                    (location.partner_id.name if location.partner_id else "")
+                    or location.name
+                    or ""
+                )
+            else:
+                rec.customer_name = ""
 
     def _itad_collect_pod_evidence(self):
         self.ensure_one()
@@ -142,3 +245,152 @@ class FsmOrder(models.Model):
                 }
             )
         return True
+
+    def action_open_receiving_wizard(self):
+        """Open receiving confirmation wizard for this order."""
+        self.ensure_one()
+        if not self.itad_pickup_manifest_id:
+            raise UserError(_("No pickup manifest found for this order."))
+        if not self.itad_bol_id:
+            raise UserError(_("No BOL ID found. Manifest must be bound to BOL first."))
+        
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Confirm Receipt",
+            "res_model": "itad.receiving.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_fsm_order_id": self.id,
+                "default_pickup_manifest_id": self.itad_pickup_manifest_id,
+                "default_manifest_no": self.itad_manifest_no,
+                "default_bol_id": self.itad_bol_id,
+            },
+        }
+    
+    # Phase 2.5: Variance Resolution
+    def action_resolve_variance(self):
+        """Mark variance as resolved (manager action)."""
+        for rec in self:
+            if rec.itad_variance_review_state != "pending":
+                continue
+            rec.write({
+                "itad_variance_review_state": "resolved",
+                "itad_variance_reviewed_by": self.env.user.id,
+                "itad_variance_reviewed_at": fields.Datetime.now(),
+            })
+        return True
+    
+    @api.model
+    def _get_variance_thresholds(self):
+        """Get variance detection thresholds from config."""
+        icp = self.env["ir.config_parameter"].sudo()
+        return {
+            "percent_threshold": float(icp.get_param("itad_core.variance.percent_threshold", "25")),
+            "absolute_lbs_threshold": float(icp.get_param("itad_core.variance.absolute_lbs_threshold", "500")),
+            "max_weight_lbs": float(icp.get_param("itad_core.max_receipt_weight_lbs", "50000")),
+        }
+    
+    def _evaluate_variance_for_order(self):
+        """
+        Evaluate variance for a single order.
+        Returns (flag, reason) tuple.
+        """
+        self.ensure_one()
+        thresholds = self._get_variance_thresholds()
+        
+        # Skip if no receipt weight
+        if not self.itad_receipt_weight_lbs:
+            return False, ""
+        
+        weight = self.itad_receipt_weight_lbs
+        reasons = []
+        
+        # Rule 1: Weight exceeds max threshold
+        if weight > thresholds["max_weight_lbs"]:
+            reasons.append(
+                f"Receipt weight {weight:.1f} lbs exceeds max {thresholds['max_weight_lbs']:.0f} lbs"
+            )
+        
+        # Rule 2: Expected weight comparison (if available via related field)
+        # Note: expected_weight would need to be added if not present
+        expected = getattr(self, "expected_weight_lbs", None)
+        if expected and expected > 0:
+            delta = abs(weight - expected)
+            delta_pct = (delta / expected) * 100
+            
+            if delta > thresholds["absolute_lbs_threshold"]:
+                reasons.append(
+                    f"Weight delta {delta:.1f} lbs exceeds threshold {thresholds['absolute_lbs_threshold']:.0f} lbs"
+                )
+            elif delta_pct > thresholds["percent_threshold"]:
+                reasons.append(
+                    f"Weight delta {delta_pct:.1f}% exceeds threshold {thresholds['percent_threshold']:.0f}%"
+                )
+        
+        if reasons:
+            return True, "; ".join(reasons)
+        return False, ""
+    
+    @api.model
+    def _cron_evaluate_variance(self):
+        """
+        Cron job: Evaluate variance for recently received orders.
+        
+        Only evaluates orders that:
+        - Have received state
+        - Haven't been evaluated yet (variance_review_state = 'none')
+        - Were confirmed in last 7 days
+        """
+        from datetime import timedelta
+        
+        now = fields.Datetime.now()
+        cutoff = now - timedelta(days=7)
+        
+        orders = self.search([
+            ("itad_receipt_state", "=", "received"),
+            ("itad_variance_review_state", "=", "none"),
+            ("itad_receipt_confirmed_at", ">=", cutoff),
+        ], limit=500)  # Batch limit
+        
+        flagged_count = 0
+        for order in orders:
+            flag, reason = order._evaluate_variance_for_order()
+            if flag:
+                order.write({
+                    "itad_variance_flag": True,
+                    "itad_variance_reason": reason,
+                    "itad_variance_review_state": "pending",
+                })
+                flagged_count += 1
+            else:
+                # Mark as evaluated (no variance)
+                order.write({
+                    "itad_variance_flag": False,
+                    "itad_variance_reason": "",
+                })
+        
+        if flagged_count:
+            import logging
+            logging.getLogger(__name__).info(
+                "Variance evaluation: flagged %d of %d orders", flagged_count, len(orders)
+            )
+        return True
+    
+    # Phase 2.7: Evidence Pack Generation
+    def action_generate_evidence_pack_button(self):
+        """Button action to generate evidence pack for this order."""
+        self.ensure_one()
+        result = self.env["itad.evidence.pack.service"].generate_for_order(self.id)
+        
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Evidence Pack Generated"),
+                "message": _("Pack ID: %s\nAttachments created successfully.") % result["pack_id"],
+                "type": "success",
+                "sticky": False,
+                "next": {"type": "ir.actions.act_window_close"},
+            },
+        }

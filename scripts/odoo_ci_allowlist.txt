@@ -1,0 +1,8 @@
+# Odoo CI allowlist
+# Format: <category>:<repo-relative-path>
+# Categories: disabled, missing_manifest, manifest_coverage
+#
+# Examples:
+# disabled:addons/common/itad_core/models/itad_pickup_manifest.py.DISABLED
+# missing_manifest:addons/odoo18/oca/field-service/.oca
+# manifest_coverage:addons/common/itad_core/views/views.xml

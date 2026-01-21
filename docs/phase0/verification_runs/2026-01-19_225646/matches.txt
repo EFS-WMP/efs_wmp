@@ -1,0 +1,52 @@
+# Phase 0 Verification Matches
+# Timestamp: 2026-01-20T06:56:46Z
+# Total Violations: 48
+
+[SOR_COMP_001] docs/phase0\verification_runs\2026-01-19_213657\summary.md:18:- `Odoo is the system of record for compliance`
+[SOR_COMP_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:1:[Odoo is the system of record for compliance] docs/phase0\verification_runs\2026-01-19_213657\summary.md:18:- `Odoo is the system of record for compliance`
+[SOR_COMP_001] docs/phase0\archive\forbidden_examples_reference.md:23:- Example: "Odoo is the system of record for compliance"
+[SOR_COMP_001] docs/phase0\verification_runs\2026-01-19_214305\summary.md:18:- `Odoo is the system of record for compliance`
+[SOR_COMP_002] docs/phase0\archive\forbidden_examples_reference.md:24:- Example: "Odoo stores the authoritative compliance records"
+[SOR_COMP_002] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:2:[Odoo stores the authoritative compliance] docs/phase0\verification_runs\2026-01-19_213657\summary.md:19:- `Odoo stores the authoritative compliance`
+[SOR_COMP_002] docs/phase0\verification_runs\2026-01-19_214305\summary.md:19:- `Odoo stores the authoritative compliance`
+[SOR_COMP_002] docs/phase0\verification_runs\2026-01-19_213657\summary.md:19:- `Odoo stores the authoritative compliance`
+[SOR_COMP_003] docs/phase0\archive\forbidden_examples_reference.md:22:**Violation**: Claiming Odoo is authoritative for compliance data
+[SOR_COMP_003] docs/phase0\archive\forbidden_examples_reference.md:25:- Example: "Odoo is authoritative for receiving weight compliance"
+[SOR_COMP_003] docs/phase0\verification_runs\2026-01-19_214305\summary.md:20:- `Odoo is authoritative for.*compliance`
+[SOR_COMP_003] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:3:[Odoo is authoritative for.*compliance] docs/phase0\verification_runs\2026-01-19_213657\summary.md:20:- `Odoo is authoritative for.*compliance`
+[SOR_COMP_003] docs/phase0\verification_runs\2026-01-19_213657\summary.md:20:- `Odoo is authoritative for.*compliance`
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-02_2112.txt:8:Running: rg -n "acceptance.*commits to ITAD Core" docs/phase0
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-02_2112.txt:9:docs/phase0\verification_runs\2026-01-02_2112.txt:8:Running: rg -n "acceptance.*commits to ITAD Core" docs/phase0
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_214305\summary.md:21:- `acceptance.*commits to ITAD Core`
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_213657\summary.md:21:- `acceptance.*commits to ITAD Core`
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:4:[acceptance.*commits to ITAD Core] docs/phase0\SOR_LOCK.md:8:- ΓÇ£acceptance ΓÇª commits to ITAD CoreΓÇ¥
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:5:[acceptance.*commits to ITAD Core] docs/phase0\verification_runs\2026-01-02_2112.txt:8:Running: rg -n "acceptance.*commits to ITAD Core" docs/phase0
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:6:[acceptance.*commits to ITAD Core] docs/phase0\verification_runs\2026-01-02_2112.txt:9:docs/phase0\verification_runs\2026-01-02_2112.txt:8:Running: rg -n "acceptance.*commits to ITAD Core" docs/phase0
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:7:[acceptance.*commits to ITAD Core] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:1:[acceptance.*commits to ITAD Core] docs/phase0\SOR_LOCK.md:8:- ╬ô├ç┬úacceptance ╬ô├ç┬¬ commits to ITAD Core╬ô├ç┬Ñ
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:8:[acceptance.*commits to ITAD Core] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:2:[acceptance.*commits to ITAD Core] docs/phase0\verification_runs\2026-01-02_2112.txt:8:Running: rg -n "acceptance.*commits to ITAD Core" docs/phase0
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:9:[acceptance.*commits to ITAD Core] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:3:[acceptance.*commits to ITAD Core] docs/phase0\verification_runs\2026-01-02_2112.txt:9:docs/phase0\verification_runs\2026-01-02_2112.txt:8:Running: rg -n "acceptance.*commits to ITAD Core" docs/phase0
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:10:[acceptance.*commits to ITAD Core] docs/phase0\verification_runs\2026-01-19_213657\summary.md:21:- `acceptance.*commits to ITAD Core`
+[SOR_ACC_001] docs/phase0\archive\forbidden_examples_reference.md:28:**Violation**: Claiming acceptance commits to ITAD Core
+[SOR_ACC_001] docs/phase0\archive\forbidden_examples_reference.md:29:- Example: "acceptance phase commits to ITAD Core"
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:1:[acceptance.*commits to ITAD Core] docs/phase0\SOR_LOCK.md:8:- ΓÇ£acceptance ΓÇª commits to ITAD CoreΓÇ¥
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:2:[acceptance.*commits to ITAD Core] docs/phase0\verification_runs\2026-01-02_2112.txt:8:Running: rg -n "acceptance.*commits to ITAD Core" docs/phase0
+[SOR_ACC_001] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:3:[acceptance.*commits to ITAD Core] docs/phase0\verification_runs\2026-01-02_2112.txt:9:docs/phase0\verification_runs\2026-01-02_2112.txt:8:Running: rg -n "acceptance.*commits to ITAD Core" docs/phase0
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-02_2112.txt:3:Running: rg -n "system of record for all operational data" docs/phase0
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-02_2112.txt:4:docs/phase0\verification_runs\2026-01-02_2112.txt:3:Running: rg -n "system of record for all operational data" docs/phase0
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_213657\summary.md:22:- `system of record for all operational data`
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:11:[system of record for all operational data] docs/phase0\SOR_LOCK.md:6:- ΓÇ£system of record for all operational dataΓÇ¥
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:12:[system of record for all operational data] docs/phase0\SOR_LOCK.md:7:- ΓÇ£ITAD Core serves as the system of record for all operational dataΓÇ¥
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:13:[system of record for all operational data] docs/phase0\verification_runs\2026-01-19_213657\summary.md:22:- `system of record for all operational data`
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:14:[system of record for all operational data] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:4:[system of record for all operational data] docs/phase0\SOR_LOCK.md:6:- ╬ô├ç┬úsystem of record for all operational data╬ô├ç┬Ñ
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:15:[system of record for all operational data] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:5:[system of record for all operational data] docs/phase0\SOR_LOCK.md:7:- ╬ô├ç┬úITAD Core serves as the system of record for all operational data╬ô├ç┬Ñ
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:16:[system of record for all operational data] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:6:[system of record for all operational data] docs/phase0\verification_runs\2026-01-02_2112.txt:3:Running: rg -n "system of record for all operational data" docs/phase0
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:17:[system of record for all operational data] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:7:[system of record for all operational data] docs/phase0\verification_runs\2026-01-02_2112.txt:4:docs/phase0\verification_runs\2026-01-02_2112.txt:3:Running: rg -n "system of record for all operational data" docs/phase0
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:18:[system of record for all operational data] docs/phase0\verification_runs\2026-01-02_2112.txt:3:Running: rg -n "system of record for all operational data" docs/phase0
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_214305\matches.txt:19:[system of record for all operational data] docs/phase0\verification_runs\2026-01-02_2112.txt:4:docs/phase0\verification_runs\2026-01-02_2112.txt:3:Running: rg -n "system of record for all operational data" docs/phase0
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_214305\summary.md:22:- `system of record for all operational data`
+[SOR_ALL_001] docs/phase0\archive\forbidden_examples_reference.md:18:- Example: "system of record for all operational data"
+[SOR_ALL_001] docs/phase0\archive\forbidden_examples_reference.md:19:- Example: "ITAD Core serves as the system of record for all operational data"
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:4:[system of record for all operational data] docs/phase0\SOR_LOCK.md:6:- ΓÇ£system of record for all operational dataΓÇ¥
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:5:[system of record for all operational data] docs/phase0\SOR_LOCK.md:7:- ΓÇ£ITAD Core serves as the system of record for all operational dataΓÇ¥
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:6:[system of record for all operational data] docs/phase0\verification_runs\2026-01-02_2112.txt:3:Running: rg -n "system of record for all operational data" docs/phase0
+[SOR_ALL_001] docs/phase0\verification_runs\2026-01-19_213657\matches.txt:7:[system of record for all operational data] docs/phase0\verification_runs\2026-01-02_2112.txt:4:docs/phase0\verification_runs\2026-01-02_2112.txt:3:Running: rg -n "system of record for all operational data" docs/phase0

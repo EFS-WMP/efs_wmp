@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Phase 2.3 Security: Taxonomy Audit Log Views -->
+    
+    <!-- Tree View -->
+    <record id="view_itad_taxonomy_audit_log_tree" model="ir.ui.view">
+        <field name="name">itad.taxonomy.audit.log.tree</field>
+        <field name="model">itad.taxonomy.audit.log</field>
+        <field name="arch" type="xml">
+            <list string="Taxonomy Audit Log" create="false" delete="false" edit="false">
+                <field name="occurred_at"/>
+                <field name="user_id"/>
+                <field name="action"/>
+                <field name="success"/>
+                <field name="error_message"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Form View -->
+    <record id="view_itad_taxonomy_audit_log_form" model="ir.ui.view">
+        <field name="name">itad.taxonomy.audit.log.form</field>
+        <field name="model">itad.taxonomy.audit.log</field>
+        <field name="arch" type="xml">
+            <form string="Audit Log Entry" create="false" delete="false" edit="false">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="occurred_at"/>
+                            <field name="user_id"/>
+                            <field name="action"/>
+                        </group>
+                        <group>
+                            <field name="success"/>
+                        </group>
+                    </group>
+                    <group string="Details">
+                        <field name="details" colspan="2" nolabel="1"/>
+                    </group>
+                    <group string="Error Message" invisible="not error_message">
+                        <field name="error_message" colspan="2" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Search View -->
+    <record id="view_itad_taxonomy_audit_log_search" model="ir.ui.view">
+        <field name="name">itad.taxonomy.audit.log.search</field>
+        <field name="model">itad.taxonomy.audit.log</field>
+        <field name="arch" type="xml">
+            <search string="Search Audit Logs">
+                <field name="user_id"/>
+                <field name="action"/>
+                <filter string="Success" name="success" domain="[('success', '=', True)]"/>
+                <filter string="Failures" name="failures" domain="[('success', '=', False)]"/>
+                <separator/>
+                <filter string="Sync Events" name="sync_events" domain="[('action', 'in', ['sync_attempt', 'sync_success', 'sync_failure'])]"/>
+                <filter string="Break-Glass Events" name="break_glass" domain="[('action', 'in', ['break_glass_enabled', 'break_glass_disabled', 'stale_override_used'])]"/>
+                <group expand="0" string="Group By">
+                    <filter string="User" name="group_user" context="{'group_by': 'user_id'}"/>
+                    <filter string="Action" name="group_action" context="{'group_by': 'action'}"/>
+                    <filter string="Success/Failure" name="group_success" context="{'group_by': 'success'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_itad_taxonomy_audit_log" model="ir.actions.act_window">
+        <field name="name">Taxonomy Audit Log</field>
+        <field name="res_model">itad.taxonomy.audit.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_sync_events': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No audit events yet
+            </p>
+            <p>
+                Audit logs track all taxonomy sync operations, break-glass usage, and security events.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Menu Item (under Configuration) -->
+    <menuitem id="menu_itad_taxonomy_audit_log"
+              name="Taxonomy Audit Log"
+              parent="menu_itad_configuration"
+              action="action_itad_taxonomy_audit_log"
+              sequence="20"/>
+</odoo>

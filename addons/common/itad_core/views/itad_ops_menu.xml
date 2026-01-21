@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Phase 2.5: Operations Health Menu Structure -->
+    
+    <!-- Operations Health Parent Menu -->
+    <menuitem id="menu_itad_ops_health"
+              name="Operations Health"
+              parent="menu_itad_root"
+              sequence="5"/>
+    
+    <!-- Health Dashboard -->
+    <menuitem id="menu_itad_ops_dashboard"
+              name="Health Dashboard"
+              parent="menu_itad_ops_health"
+              action="action_itad_ops_alert_dashboard"
+              sequence="10"/>
+    
+    <!-- Receiving Queues Submenu -->
+    <menuitem id="menu_itad_ops_queues"
+              name="Receiving Queues"
+              parent="menu_itad_ops_health"
+              sequence="20"/>
+    
+    <menuitem id="menu_itad_ops_queue_pending"
+              name="Pending Receipts"
+              parent="menu_itad_ops_queues"
+              action="action_receiving_pending"
+              sequence="10"/>
+    
+    <menuitem id="menu_itad_ops_queue_exceptions"
+              name="Receipt Exceptions"
+              parent="menu_itad_ops_queues"
+              action="action_receiving_exceptions"
+              sequence="20"/>
+    
+    <menuitem id="menu_itad_ops_queue_variance"
+              name="Variance Review"
+              parent="menu_itad_ops_queues"
+              action="action_variance_review_queue"
+              sequence="30"/>
+    
+    <!-- Sync Status -->
+    <menuitem id="menu_itad_ops_sync"
+              name="Sync Status"
+              parent="menu_itad_ops_health"
+              action="action_taxonomy_sync_state"
+              sequence="30"/>
+    
+    <!-- Outbox Health -->
+    <menuitem id="menu_itad_ops_outbox"
+              name="Outbox Health"
+              parent="menu_itad_ops_health"
+              action="action_outbox_health"
+              sequence="40"/>
+    
+</odoo>

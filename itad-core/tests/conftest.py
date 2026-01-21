@@ -1,20 +1,61 @@
+import asyncio
+import os
+import sys
+
 import pytest
 import pytest_asyncio
+from sqlalchemy.exc import OperationalError
 
+_DEFAULT_TEST_DATABASE_URL = (
+    "postgresql+psycopg://itad_user:itad_pass@postgres:5432/itad_core_test"
+)
+_TEST_DATABASE_ENV_VARS = ("TEST_DATABASE_URL", "DATABASE_URL")
+
+
+def _resolve_test_database_url() -> tuple[str, str | None]:
+    for env_var in _TEST_DATABASE_ENV_VARS:
+        value = os.getenv(env_var)
+        if value:
+            return value, env_var
+    return _DEFAULT_TEST_DATABASE_URL, None
+
+
+_RESOLVED_DATABASE_URL, _RESOLVED_ENV_VAR = _resolve_test_database_url()
+os.environ["ITAD_CORE_DATABASE_URL"] = _RESOLVED_DATABASE_URL
+_USING_DEFAULT_TEST_DB = _RESOLVED_ENV_VAR is None
+
+# psycopg async on Windows does not support ProactorEventLoop.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+# Import after env setup so settings pick up the test DB URL.
 from app.core.db import async_session, create_tables
 from app.models.bol import BOL, SourceType
 
 HTTP_BLOCK_MESSAGE = "Real HTTP is forbidden in tests; use mocks."
 
 
+async def _create_tables_with_hint():
+    try:
+        await create_tables()
+    except OperationalError as exc:
+        if _USING_DEFAULT_TEST_DB:
+            raise RuntimeError(
+                "Test database connection failed using the default docker URL. "
+                "Set TEST_DATABASE_URL or DATABASE_URL to a reachable test DB "
+                "(expected db name: itad_core_test)."
+            ) from exc
+        raise
+
+
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def prepare_schema():
-    await create_tables()
+    await _create_tables_with_hint()
 
 
 @pytest_asyncio.fixture
 async def db_session():
-    await create_tables()
+    await _create_tables_with_hint()
     async with async_session() as session:
         bol = BOL(
             id="bol-123",

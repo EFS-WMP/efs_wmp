@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Phase 2.3: Material Taxonomy Sync Cron Job -->
+        
+        <record id="ir_cron_material_type_sync" model="ir.cron">
+            <field name="name">ITAD Core: Sync Material Taxonomy</field>
+            <field name="model_id" ref="model_itad_material_sync"/>
+            <field name="state">code</field>
+            <field name="code">model._sync_from_itad_core(manual=False)</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+
+            <field name="active" eval="True"/>
+
+        </record>
+    </data>
+</odoo>

@@ -1,5 +1,18 @@
 # ITAD Core Workspace
 
+## 🐳 Docker Runtime
+
+> **Odoo source is NOT a runtime dependency. Docker image (`odoo:18.0`) is the only supported runtime.**
+
+See [Docker Runbook](docs/runbook_docker.md) for all operational commands.
+
+```powershell
+# Start services (from repo root)
+docker compose -p odoo18 -f docker/odoo18/docker-compose.odoo18.yml up -d
+```
+
+---
+
 ## Codex Checklist
 Use CODEX_CHECKLIST.md for every Codex change set / PR.
 

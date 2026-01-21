@@ -1,16 +1,26 @@
 # Phase 0 Lock Review Tracker (Canonical)
 
 Progress Summary
-- Completed: 31/31
-- Current milestone: Phase 0 Lock Review complete (awaiting sign-off; keep Phase 1 blocked)
-- Phase 1 remains BLOCKED pending sign-off even though items 1-31 are checked.
+- Phase 0: 31/31 complete (CLOSED)
+- Phase 1: COMPLETE - Verification passed 2026-01-17
+- Current milestone: Phase 1 verification complete; Phase 2 ready to start
+- Phase 1 DoD satisfied: Idempotency proven, SoR guard validated (422), correlation logging operational
 - SoR lock: Odoo is SoR for scheduling/work orders/day routes/dispatch execution. ITAD Core is SoR for compliance/receiving/processing/custody/evidence/reconciliation/lots/shipments/disposition/certificates/settlement. Routific is optimizer-only. Acceptance/dispatch commits to Odoo; ITAD Core receives compliance artifacts later via pickup_manifest -> BOL -> receiving...
-- [ ] Enforce CODEX_CHECKLIST.md for every change set (Acceptance: PR/review must reference checklist)
-- [ ] Phase 1 Pre-Start Gate: Lock Routific caller = Odoo (Acceptance: docs updated in PHASE_0.md + glossary.md + object_map.md + PHASE_0_LOCK_REVIEW gate)
+- [x] Enforce CODEX_CHECKLIST.md for every change set (Acceptance: PR/review must reference checklist)
+- [x] Phase 1 Pre-Start Gate: Lock Routific caller = Odoo (Acceptance: docs updated in PHASE_0.md + glossary.md + object_map.md + PHASE_0_LOCK_REVIEW gate)
+- [x] Phase 1 Verification Complete (2026-01-17): Idempotency proof, SoR guard rejection (422), correlation logging validated (Evidence: docs/phase1/PHASE_1_VERIFICATION_LOG.md)
 - [x] Phase 1 SoR Guard Clarification: Operational-truth keys forbidden EXCEPT inside `*_snapshot_json` / `snapshot_json` (Acceptance: recursive guard with snapshot exemption implemented; tests passing)
 - [x] Phase 1 Verification Gate Commands (canonical paths):
-- `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec -T itad-core pytest -q`
-  - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 odoo -c /etc/odoo/odoo.conf -d <DB_NAME> -u itad_core --stop-after-init --test-enable`
+- `docker compose -f itad-core/docker-compose.itad-core.yml exec -T -e TEST_DATABASE_URL=postgresql+psycopg://itad_user:itad_pass@postgres:5432/itad_core_test itad-core python -m pytest -q`
+  - `docker compose -p odoo18 -f docker/odoo18/docker-compose.odoo18.yml run --rm -T odoo18 odoo -c /etc/odoo/odoo.conf -d <DB_NAME> -u itad_core --stop-after-init --test-enable --no-http`
+
+## Phase 2.2a Verification (Canonical)
+- One-shot tests:
+  - `docker compose -p odoo18 -f docker/odoo18/docker-compose.odoo18.yml run --rm -T odoo18 odoo --test-enable -d odoo18_db -c /etc/odoo/odoo.conf -u itad_core --stop-after-init --no-http`
+- DB list:
+  - `docker compose -p odoo18 -f docker/odoo18/docker-compose.odoo18.yml exec -T db18 psql -U odoo -d postgres -c "\l+"`
+- Evidence capture (writes `docs/evidence/phase2.2a/`):
+  - `python3 addons/common/itad_core/scripts/capture_phase2_2a_test_evidence.py`
 
 ### Phase 0 Step 1 — Canonical docs gate [x]
 Definition / Intent:
@@ -75,7 +85,7 @@ Acceptance Criteria:
 - `docs/phase0/PHASE_0_VERIFICATION_LOG.md` records the latest run with the `alembic`, `pytest`, `seed_demo`, guard, validator, and grep outputs.
 - Verification commands executed:
  1. `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core alembic upgrade head`
- 2. `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core python -m pytest -q`
+ 2. `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec -e TEST_DATABASE_URL=postgresql+psycopg://itad_user:itad_pass@postgres:5432/itad_core_test itad-core python -m pytest -q`
  3. `docker compose -f C:\odoo_dev\itad-core\docker-compose.itad-core.yml exec itad-core python -m app.scripts.seed_demo`
   4. `powershell -ExecutionPolicy Bypass -File scripts/phase0_sor_guard.ps1`
   5. `python scripts/phase0_validate_evidence_index.py`

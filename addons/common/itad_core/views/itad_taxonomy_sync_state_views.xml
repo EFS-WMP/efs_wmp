@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Phase 2.3: Taxonomy Sync State Views -->
+    
+    <!-- Form View -->
+    <record id="view_itad_taxonomy_sync_state_form" model="ir.ui.view">
+        <field name="name">itad.taxonomy.sync.state.form</field>
+        <field name="model">itad.taxonomy.sync.state</field>
+        <field name="arch" type="xml">
+            <form string="Taxonomy Sync State" create="false" delete="false">
+                <header>
+                    <button name="%(action_material_type_sync_now)d"
+                            string="Sync Now"
+                            type="action"
+                            class="oe_highlight"
+                            help="Manually trigger material taxonomy sync from ITAD Core"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Sync Status">
+                            <field name="last_success_at"/>
+                            <field name="last_attempt_at"/>
+                        </group>
+                        <group string="Incremental Cursor">
+                            <field name="last_cursor_updated_since"/>
+                        </group>
+                    </group>
+                    <group string="Last Error" invisible="not last_error">
+                        <field name="last_error" colspan="2" nolabel="1"/>
+                    </group>
+                    <group string="Statistics (Last Run)">
+                        <field name="stats_last_run" colspan="2" widget="text"/>
+                    </group>
+                    <div class="alert alert-success" role="alert" invisible="last_error">
+                        <strong>Sync Health: OK</strong><br/>
+                        Last successful sync completed successfully.
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="not last_error">
+                        <strong>Sync Health: Error</strong><br/>
+                        The last sync attempt encountered an error. Check the error message above and click "Sync Now" to retry.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_itad_taxonomy_sync_state" model="ir.actions.act_window">
+        <field name="name">Taxonomy Sync State</field>
+        <field name="res_model">itad.taxonomy.sync.state</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+    
+    <!-- Menu: Configuration (если ещё нигде не определён) -->
+    <menuitem id="menu_itad_configuration"
+              name="Configuration"
+              parent="menu_itad_root"
+              sequence="100"/>
+
+    <menuitem id="menu_itad_taxonomy_sync_state"
+              name="Taxonomy Sync State"
+              parent="menu_itad_configuration"
+              action="action_itad_taxonomy_sync_state"
+              sequence="10"/>
+
+</odoo>

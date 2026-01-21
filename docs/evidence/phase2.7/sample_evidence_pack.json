@@ -1,0 +1,128 @@
+{
+    "meta": {
+        "pack_id": "evp-BOL-2026-SAMPLE-20260118093045Z",
+        "schema_version": "1.0",
+        "generated_at": "2026-01-18T09:30:45Z",
+        "generated_by": {
+            "odoo_user_id": 2,
+            "odoo_user_login": "receiving_manager",
+            "roles": [
+                "ITAD Receiving Manager"
+            ]
+        },
+        "input": {
+            "bol_id": "BOL-2026-SAMPLE",
+            "manifest_no": "MAN-2026-001234",
+            "fsm_order_id": 123
+        },
+        "systems": {
+            "odoo_db": "odoo18_db",
+            "itad_core_base_url": "http://localhost:8001",
+            "itad_core_version": null
+        }
+    },
+    "trace": {
+        "correlation_ids": [
+            "corr-abc123-def456"
+        ],
+        "idempotency_keys": [
+            "idem-submit-123",
+            "idem-receipt-456"
+        ]
+    },
+    "odoo": {
+        "fsm_order": {
+            "id": 123,
+            "name": "WO/2026/00123",
+            "itad_manifest_no": "MAN-2026-001234",
+            "itad_bol_id": "BOL-2026-SAMPLE",
+            "itad_receipt_state": "received",
+            "itad_receipt_idempotency_key": "idem-receipt-456",
+            "customer": "REDACTED Customer Name",
+            "timestamps": {
+                "created_at": "2026-01-15T10:00:00Z",
+                "updated_at": "2026-01-18T09:30:00Z",
+                "receipt_confirmed_at": "2026-01-18T08:15:00Z"
+            }
+        },
+        "outbox_events": [
+            {
+                "id": 456,
+                "state": "sent",
+                "idempotency_key": "idem-submit-123",
+                "correlation_id": "corr-abc123-def456",
+                "attempt_count": 1,
+                "last_error": null,
+                "created_at": "2026-01-15T10:05:00Z",
+                "updated_at": "2026-01-15T10:05:30Z"
+            }
+        ],
+        "receipt_audit_logs": [
+            {
+                "id": 789,
+                "attempt_number": 1,
+                "attempted_at": "2026-01-18T08:14:45Z",
+                "outcome": "SUCCESS",
+                "success": true,
+                "error_message": null,
+                "archived": false,
+                "archived_at": null
+            }
+        ],
+        "attachments": [
+            {
+                "id": 101,
+                "name": "scale_photo_001.jpg",
+                "mimetype": "image/jpeg",
+                "created_at": "2026-01-18T08:14:00Z",
+                "sha256": "a1b2c3d4e5f6...REDACTED",
+                "source": "fsm.order"
+            }
+        ]
+    },
+    "itad_core": {
+        "receiving_anchors": [
+            {
+                "id": "uuid-receiving-123",
+                "bol_id": "BOL-2026-SAMPLE",
+                "occurred_at": "2026-01-18T08:15:00Z",
+                "net_weight": 1234.56,
+                "weight_unit": "LBS",
+                "material_type_id": "uuid-material-001",
+                "material_code": "BAT-LI-001",
+                "created_at": "2026-01-18T08:15:00Z",
+                "updated_at": "2026-01-18T08:15:00Z"
+            }
+        ],
+        "material_type_snapshot": {
+            "id": "uuid-material-001",
+            "code": "BAT-LI-001",
+            "name": "Lithium Ion Battery",
+            "stream": "batteries",
+            "hazard_class": "9",
+            "requires_photo": true,
+            "requires_weight": true,
+            "is_active": true,
+            "updated_at": "2026-01-10T12:00:00Z",
+            "billing": {
+                "pricing_state": "priced",
+                "default_price": 0.25,
+                "basis_of_charge": "per_lb",
+                "gl_account_code": "4100-BAT"
+            }
+        }
+    },
+    "retention_and_controls": {
+        "retention_policy": {
+            "odoo_audit_retention_days": 365,
+            "mode": "archive",
+            "last_retention_run_at": null
+        },
+        "break_glass_events": []
+    },
+    "integrity": {
+        "json_sha256": "REDACTED...64_char_hex",
+        "pdf_sha256": "REDACTED...64_char_hex",
+        "notes": []
+    }
+}

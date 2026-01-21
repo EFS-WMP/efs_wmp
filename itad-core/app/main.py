@@ -8,6 +8,7 @@ from app.api.v1.pickup_manifests import router as pickup_manifests_router
 from app.api.v1.receiving import router as receiving_router
 from app.api.v1.taxonomy import router as taxonomy_router
 from app.api.v1.workstreams import router as workstreams_router
+from app.api.v1.material_types import router as material_types_router
 from app.core.config import settings
 from app.core.db import create_tables
 from app.core.correlation import CorrelationMiddleware
@@ -42,6 +43,7 @@ app.include_router(receiving_router, prefix="/api/v1", tags=["Receiving"])
 app.include_router(workstreams_router, prefix="/api/v1", tags=["Workstreams"])
 app.include_router(taxonomy_router, prefix="/api/v1", tags=["Taxonomy"])
 app.include_router(processing_router, prefix="/api/v1", tags=["Processing"])
+app.include_router(material_types_router, prefix="/api/v1", tags=["MaterialTypes"])
 
 
 @app.get("/healthz")

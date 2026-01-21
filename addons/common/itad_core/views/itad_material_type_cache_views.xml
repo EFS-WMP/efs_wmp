@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Phase 2.3: Material Type Cache Views -->
+    
+    <!-- Tree View -->
+    <record id="view_itad_material_type_cache_tree" model="ir.ui.view">
+        <field name="name">itad.material.type.cache.tree</field>
+        <field name="model">itad.material.type.cache</field>
+        <field name="arch" type="xml">
+            <list string="Material Types" create="false" delete="false">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="stream"/>
+                <field name="requires_photo"/>
+                <field name="requires_weight"/>
+                <field name="active"/>
+                <field name="source_updated_at"/>
+                <field name="last_synced_at"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Form View -->
+    <record id="view_itad_material_type_cache_form" model="ir.ui.view">
+        <field name="name">itad.material.type.cache.form</field>
+        <field name="model">itad.material.type.cache</field>
+        <field name="arch" type="xml">
+            <form string="Material Type" create="false" delete="false" edit="false">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="toggle_active" type="object"
+                                class="oe_stat_button" icon="fa-archive"
+                                invisible="1">
+                            <field name="active" widget="boolean_button"
+                                   options='{"terminology": "archive"}'/>
+                        </button>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="name"/>
+                            <field name="stream"/>
+                            <field name="hazard_class"/>
+                        </group>
+                        <group>
+                            <field name="default_action"/>
+                            <field name="requires_photo"/>
+                            <field name="requires_weight"/>
+                            <field name="itad_core_uuid"/>
+                        </group>
+                    </group>
+                    <group string="Sync Metadata">
+                        <field name="source_updated_at"/>
+                        <field name="last_synced_at"/>
+                        <field name="source_hash"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        <strong>Read-Only Cache:</strong> Material types are automatically synced from ITAD Core. 
+                        Use the "Sync Now" button to refresh taxonomy data.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Search View -->
+    <record id="view_itad_material_type_cache_search" model="ir.ui.view">
+        <field name="name">itad.material.type.cache.search</field>
+        <field name="model">itad.material.type.cache</field>
+        <field name="arch" type="xml">
+            <search string="Search Material Types">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="stream"/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Inactive" name="inactive" domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter string="Requires Photo" name="requires_photo" domain="[('requires_photo', '=', True)]"/>
+                <filter string="Requires Weight" name="requires_weight" domain="[('requires_weight', '=', True)]"/>
+                <filter string="Has Hazard Class" name="has_hazard" domain="[('hazard_class', '!=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Stream" name="group_stream" context="{'group_by': 'stream'}"/>
+                    <filter string="Active Status" name="group_active" context="{'group_by': 'active'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_itad_material_type_cache" model="ir.actions.act_window">
+        <field name="name">Material Types</field>
+        <field name="res_model">itad.material.type.cache</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No material types found
+            </p>
+            <p>
+                Material types are automatically synced from ITAD Core.<br/>
+                Click the "Sync Now" button from the Taxonomy Sync State to load taxonomy data.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Menu Item -->
+    <menuitem id="menu_itad_material_types"
+              name="Material Types"
+              parent="menu_itad_root"
+              action="action_itad_material_type_cache"
+              sequence="20"/>
+</odoo>
+

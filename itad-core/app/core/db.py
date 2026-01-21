@@ -19,4 +19,5 @@ async def create_tables():
     async with _create_tables_lock:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
+            await conn.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS pgcrypto")
             await conn.run_sync(Base.metadata.create_all)

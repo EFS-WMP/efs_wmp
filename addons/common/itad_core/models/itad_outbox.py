@@ -108,6 +108,7 @@ class ItadCoreOutbox(models.Model):
             "itad_last_error": False,
             "itad_outbox_id": self.id,
             "itad_outbox_last_id": self.id,
+            "itad_receipt_state": "pending",  # Phase 2.1: Ready for receiving confirmation
         }
         if receiving_weight_record_id:
             order_vals["itad_receiving_weight_record_id"] = receiving_weight_record_id

@@ -1,0 +1,23 @@
+# CODEOWNERS - GitHub/GitLab Code Owners
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# ============================================================================
+# Phase 0 Documentation
+# Changes to Phase 0 artifacts require approval from Compliance and Architect
+# ============================================================================
+docs/phase0/** @compliance-team @solution-architect
+
+# Phase 0 verification scripts also require review
+scripts/phase0_verify.ps1 @compliance-team @solution-architect
+scripts/phase0_sor_guard.ps1 @compliance-team @solution-architect
+scripts/phase0_validate_evidence_index.py @compliance-team @solution-architect
+
+# ============================================================================
+# Core Integration Contracts
+# ============================================================================
+docs/phase1/INTEGRATION_CONTRACT*.md @integration-lead @solution-architect
+
+# ============================================================================
+# Default owners for everything else
+# ============================================================================
+* @engineering-tl

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Phase 2.7: Evidence Pack Views and Actions -->
+    
+    <!-- Server Action: Generate Evidence Pack -->
+    <record id="action_generate_evidence_pack" model="ir.actions.server">
+        <field name="name">Generate Evidence Pack</field>
+        <field name="model_id" ref="fieldservice.model_fsm_order"/>
+        <field name="binding_model_id" ref="fieldservice.model_fsm_order"/>
+        <field name="binding_view_types">form</field>
+        <field name="groups_id" eval="[(4, ref('group_receiving_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">
+result = env["itad.evidence.pack.service"].generate_for_order(record.id)
+action = {
+    "type": "ir.actions.client",
+    "tag": "display_notification",
+    "params": {
+        "title": "Evidence Pack Generated",
+        "message": "Pack ID: %s\nAttachments created successfully." % result["pack_id"],
+        "type": "success",
+        "sticky": False,
+    }
+}
+        </field>
+    </record>
+    
+    <!-- Action to view evidence pack attachments -->
+    <record id="action_view_evidence_packs" model="ir.actions.act_window">
+        <field name="name">Evidence Packs</field>
+        <field name="res_model">ir.attachment</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[
+            ('res_model', '=', 'fsm.order'),
+            ('res_id', '=', active_id),
+            ('name', 'like', 'EvidencePack-')
+        ]</field>
+        <field name="context">{'create': False}</field>
+    </record>
+    
+    <!-- FSM Order Form Extension: Add Evidence Pack Button -->
+    <record id="view_fsm_order_form_evidence_button" model="ir.ui.view">
+        <field name="name">fsm.order.form.evidence.button</field>
+        <field name="model">fsm.order</field>
+        <field name="inherit_id" ref="fieldservice.fsm_order_form"/>
+        <field name="priority">100</field>
+        <field name="groups_id" eval="[(4, ref('group_receiving_manager'))]"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_generate_evidence_pack_button" type="object"
+                        string="Generate Evidence Pack"
+                        class="btn-secondary"
+                        groups="itad_core.group_receiving_manager"
+                        invisible="not itad_bol_id"/>
+            </xpath>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" type="action" icon="fa-file-text-o"
+                        name="%(action_view_evidence_packs)d"
+                        groups="itad_core.group_receiving_manager">
+                    <span class="o_stat_text">Evidence Packs</span>
+                </button>
+            </xpath>
+        </field>
+    </record>
+    
+</odoo>

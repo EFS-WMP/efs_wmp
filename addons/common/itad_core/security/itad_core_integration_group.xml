@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Phase 2.3 Security Hardening: Integration Group -->
+        
+        <record id="group_itad_integration" model="res.groups">
+            <field name="name">ITAD Integration</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+            <field name="comment">System integration group for ITAD Core taxonomy sync operations. Required for sync engine to write to cache. Regular users should NOT have this group.</field>
+        </record>
+    </data>
+</odoo>

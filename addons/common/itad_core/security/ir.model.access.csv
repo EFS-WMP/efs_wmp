@@ -1,2 +1,14 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_itad_core_outbox,itad.core.outbox,model_itad_core_outbox,base.group_user,1,1,1,1
+access_itad_receiving_wizard,itad.receiving.wizard,model_itad_receiving_wizard,group_receiving_manager,1,1,1,1
+access_itad_receipt_audit_log,itad.receipt.audit.log,model_itad_receipt_audit_log,base.group_user,1,0,0,0
+access_itad_receipt_audit_log_manager,itad.receipt.audit.log manager,model_itad_receipt_audit_log,group_receiving_manager,1,1,1,0
+access_itad_material_type_cache_user,itad.material.type.cache user,model_itad_material_type_cache,base.group_user,1,0,0,0
+access_itad_material_type_cache_manager,itad.material.type.cache manager,model_itad_material_type_cache,group_receiving_manager,1,0,0,0
+access_itad_taxonomy_sync_state_user,itad.taxonomy.sync.state user,model_itad_taxonomy_sync_state,base.group_user,1,0,0,0
+access_itad_taxonomy_sync_state_manager,itad.taxonomy.sync.state manager,model_itad_taxonomy_sync_state,group_receiving_manager,1,1,0,0
+access_itad_taxonomy_audit_log_user,itad.taxonomy.audit.log user,model_itad_taxonomy_audit_log,base.group_user,1,0,0,0
+access_itad_taxonomy_audit_log_manager,itad.taxonomy.audit.log manager,model_itad_taxonomy_audit_log,group_receiving_manager,1,0,0,0
+access_itad_ops_alert_user,itad.ops.alert user,model_itad_ops_alert,base.group_user,1,0,0,0
+access_itad_ops_alert_manager,itad.ops.alert manager,model_itad_ops_alert,group_receiving_manager,1,1,1,0
+access_itad_evidence_pack_manager,itad.evidence.pack.service,model_itad_evidence_pack_service,group_receiving_manager,1,1,1,1

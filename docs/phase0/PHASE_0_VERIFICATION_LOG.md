@@ -1,19 +1,49 @@
-# Phase 0 Verification Log
+# Phase 0 Verification Log (Index)
 
-### PASS/FAIL Summary
-- **Status:** PASS (pending final sign-off)
-- **Notes:** Latest verification run recorded below; the SoR guard and evidence-index validator succeed and all Phase 0 items are PASS.
+This document serves as an **index of verification runs**, not a rewritten narrative. Each run entry links to timestamped artifacts containing full logs and match details.
 
-## How to run
-1. `cd C:\odoo_dev`
-2. `powershell -ExecutionPolicy Bypass -File scripts\phase0_verify.ps1`
-   *This script executes the documented verification commands, stops on errors, and writes outputs to `docs/phase0/verification_runs/YYYY-MM-DD_HHMM.txt`.*
+## How to Run
 
-## Verification Run Record
-| Date/Time | Runner | Git Commit | Environment | DB Migration Output | Test Output Summary | Seed Demo Output | SoR Greps Output |
-|---|---|---|---|---|---|---|---|
-| 2026-01-03 05:56 UTC | Codex SA | _not available (workspace lacks `.git`)_ | Windows PowerShell + Docker Compose (itad-core) | `docker compose -f docker-compose.itad-core.yml exec itad-core alembic upgrade head` (succeeds) | `docker compose -f docker-compose.itad-core.yml exec itad-core python -m pytest -q` (46 passed in 17.06s) | `docker compose -f docker-compose.itad-core.yml exec itad-core python -m app.scripts.seed_demo` (seed scenario with BOL/receiving + reconciliation + inventory/outbound/disposition flows) | SoR guard `powershell -ExecutionPolicy Bypass -File scripts/phase0_sor_guard.ps1` (PASS); `rg -n "\| (PARTIAL|FAIL) \|" docs/phase0/PHASE_0_EVIDENCE_INDEX.md` (no matches) |
+```powershell
+cd C:\odoo_dev
+powershell -ExecutionPolicy Bypass -File scripts\phase0_verify.ps1
+```
 
-> Additional runs can append new rows referencing the log files stored under `docs/phase0/verification_runs/`.
+The script will:
+1. Scan `docs/phase0` for forbidden SoR patterns (excluding `verification_runs/**` and binaries)
+2. Check for required SoR lock statements
+3. Create a timestamped run folder under `docs/phase0/verification_runs/<timestamp>/`
+4. Generate `raw.log`, `matches.txt`, and `summary.md` artifacts
+5. Exit with code 0 (PASS) or 1 (FAIL)
 
-> Note: `python scripts/phase0_validate_evidence_index.py` produced “All referenced paths exist.”
+## Run Index
+
+| UTC Timestamp | Commit SHA | Environment | Command | Result | Artifacts |
+|---------------|------------|-------------|---------|--------|-----------|
+| 2026-01-03T05:56:00Z | N/A | Windows PowerShell + Docker | `scripts/phase0_verify.ps1` | PASS | [2026-01-02_2112.txt](./verification_runs/2026-01-02_2112.txt) (legacy format) |
+
+> [!NOTE]
+> Legacy runs (before 2026-01-20) used a flat text file format. New runs create a folder with structured artifacts.
+
+## Run Artifact Structure
+
+Each new run creates a folder: `docs/phase0/verification_runs/<YYYY-MM-DD_HHMMSS>/`
+
+| File | Description |
+|------|-------------|
+| `raw.log` | Full stdout/stderr from the verification run |
+| `matches.txt` | List of forbidden pattern matches (or "No forbidden patterns found") |
+| `summary.md` | PASS/FAIL summary with metadata (commit SHA, timestamp, violation count) |
+
+## Adding New Run Entries
+
+After running the verification script:
+
+1. Note the run folder path printed to console
+2. Add a new row to the Run Index table above with:
+   - UTC Timestamp (from `summary.md`)
+   - Commit SHA (from `summary.md` or `git rev-parse --short HEAD`)
+   - Environment (e.g., `dev/Windows PowerShell`, `CI/GitHub Actions`)
+   - Command executed
+   - Result (PASS/FAIL)
+   - Link to the run artifacts folder
