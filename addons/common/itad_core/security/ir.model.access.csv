@@ -11,4 +11,3 @@ access_itad_taxonomy_audit_log_user,itad.taxonomy.audit.log user,model_itad_taxo
 access_itad_taxonomy_audit_log_manager,itad.taxonomy.audit.log manager,model_itad_taxonomy_audit_log,group_receiving_manager,1,0,0,0
 access_itad_ops_alert_user,itad.ops.alert user,model_itad_ops_alert,base.group_user,1,0,0,0
 access_itad_ops_alert_manager,itad.ops.alert manager,model_itad_ops_alert,group_receiving_manager,1,1,1,0
-access_itad_evidence_pack_manager,itad.evidence.pack.service,model_itad_evidence_pack_service,group_receiving_manager,1,1,1,1

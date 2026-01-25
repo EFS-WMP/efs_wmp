@@ -8,4 +8,3 @@ from . import itad_taxonomy_sync_state
 from . import itad_taxonomy_audit_log
 from . import itad_receipt_audit_log
 from . import itad_ops_alert
-from . import itad_evidence_pack

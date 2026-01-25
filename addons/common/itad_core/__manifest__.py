@@ -46,7 +46,6 @@ Phase 2.3: Material Taxonomy Sync
         "views/itad_operational_reports_views.xml",
         "views/itad_ops_health_views.xml",
         "views/itad_ops_menu.xml",
-        "views/itad_evidence_pack_views.xml",
         "data/itad_outbox_cron.xml",
         "data/itad_receipt_audit_archiving_cron.xml",
         "data/itad_taxonomy_audit_retention_cron.xml",
