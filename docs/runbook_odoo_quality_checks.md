@@ -13,8 +13,9 @@ python3 -c "import os; print(os.environ.get('ODOO_RC',''))"
 grep -n "addons_path" /etc/odoo/odoo.conf || true
 
 # Install + stop after init
+# NOTE: use the exact addons_path from /etc/odoo/odoo.conf in this container.
 odoo \
-  --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/efs_wmp/addons,/mnt/extra-addons/oca/field-service \
+  --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons-custom,/mnt/extra-addons-odoo18/oca/field-service \
   -d itad_test \
   -i itad_core \
   --stop-after-init
@@ -25,14 +26,15 @@ odoo \
 **Goal:** ensure the OCA stack is present and version-pinned.
 
 ```bash
-ls -la /mnt/extra-addons
-find /mnt/extra-addons -maxdepth 3 -type f -name "__manifest__.py" | rg -i "fieldservice" || true
+# Use the same base path that appears in addons_path.
+ls -la /mnt/extra-addons-custom
+find /mnt/extra-addons-odoo18/oca/field-service -maxdepth 3 -type f -name "__manifest__.py" | grep -i "fieldservice" || true
 ```
 
 Recommended layout:
 
-- `/mnt/extra-addons/efs_wmp/addons` (this repo)
-- `/mnt/extra-addons/oca/field-service` (OCA)
+- `/mnt/extra-addons-custom` (this repo in the container)
+- `/mnt/extra-addons-odoo18/oca/field-service` (OCA)
 
 And `addons_path` must include both.
 
