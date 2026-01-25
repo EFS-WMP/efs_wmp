@@ -377,20 +377,3 @@ class FsmOrder(models.Model):
             )
         return True
     
-    # Phase 2.7: Evidence Pack Generation
-    def action_generate_evidence_pack_button(self):
-        """Button action to generate evidence pack for this order."""
-        self.ensure_one()
-        result = self.env["itad.evidence.pack.service"].generate_for_order(self.id)
-        
-        return {
-            "type": "ir.actions.client",
-            "tag": "display_notification",
-            "params": {
-                "title": _("Evidence Pack Generated"),
-                "message": _("Pack ID: %s\nAttachments created successfully.") % result["pack_id"],
-                "type": "success",
-                "sticky": False,
-                "next": {"type": "ir.actions.act_window_close"},
-            },
-        }
