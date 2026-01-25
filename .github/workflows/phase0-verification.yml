@@ -1,0 +1,55 @@
+name: Phase 0 SoR Verification
+
+on:
+  pull_request:
+    paths:
+      - 'docs/phase0/**'
+      - 'scripts/phase0_verify.ps1'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/phase0/**'
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install ripgrep
+        run: choco install ripgrep -y
+      
+      - name: Run Phase 0 Verification
+        run: |
+          cd ${{ github.workspace }}
+          powershell -ExecutionPolicy Bypass -File scripts\phase0_verify.ps1
+        shell: pwsh
+      
+      - name: Upload verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase0-verification-results
+          path: docs/phase0/verification_runs/
+          retention-days: 30
+      
+      - name: Comment on PR
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **Phase 0 Verification Failed**\n\nThe verification script detected SoR boundary violations. Please review the artifacts and fix before merging.\n\nSee the [verification results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
+            })
+      
+      - name: Fail on violations
+        if: failure()
+        run: |
+          Write-Host "❌ Phase 0 verification failed. Check artifacts for details." -ForegroundColor Red
+          exit 1

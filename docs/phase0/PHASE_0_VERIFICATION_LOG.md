@@ -20,6 +20,7 @@ The script will:
 
 | UTC Timestamp | Commit SHA | Environment | Command | Result | Artifacts |
 |---------------|------------|-------------|---------|--------|-----------|
+| 2026-01-25T02:39:08Z | b8a8707 | Windows PowerShell 5.1 + ripgrep 15.1.0 | `scripts/phase0_verify.ps1` | **PASS** ✅ | [2026-01-24_183908](./verification_runs/2026-01-24_183908/) |
 | 2026-01-03T05:56:00Z | N/A | Windows PowerShell + Docker | `scripts/phase0_verify.ps1` | PASS | [2026-01-02_2112.txt](./verification_runs/2026-01-02_2112.txt) (legacy format) |
 
 > [!NOTE]

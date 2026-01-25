@@ -1,0 +1,11 @@
+C:/odoo_dev/docs/phase0/PHASE_0_LOCK_REVIEW.md
+C:/odoo_dev/docs/phase0/PHASE_0_EVIDENCE_INDEX.md
+C:/odoo_dev/docs/phase0/PHASE_0A_SIGNOFF.md
+C:/odoo_dev/docs/phase0/PHASE_0.md
+C:/odoo_dev/docs/phase0/object_map.md
+C:/odoo_dev/docs/phase0/glossary.md
+C:/odoo_dev/docs/phase0/PHASE_1_READINESS_GATE.md
+C:/odoo_dev/docs/phase0/PHASE_0_VERIFICATION_LOG.md
+C:/odoo_dev/docs/phase0/SOR_LOCK.md
+C:/odoo_dev/docs/phase0/PHASE_0_RISK_REGISTER.md
+C:/odoo_dev/docs/phase0/PHASE_0_SIGNOFF_SUMMARY.md

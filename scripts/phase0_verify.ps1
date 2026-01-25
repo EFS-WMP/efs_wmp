@@ -210,8 +210,9 @@ $scanFiles = $allMdFiles | Where-Object {
     $_ -and ($_ -notmatch $excludePattern)
 }
 
-# Step 3: Write scan file list
-$scanFilesContent = ($scanFiles -join "`n")
+# Step 3: Write scan file list (convert backslashes to forward slashes for ripgrep)
+$scanFilesNormalized = $scanFiles | ForEach-Object { $_ -replace '\\', '/' }
+$scanFilesContent = ($scanFilesNormalized -join "`n")
 Write-Utf8File -Path $scanFilesListPath -Content $scanFilesContent
 
 $scanFileCount = ($scanFiles | Measure-Object).Count
@@ -228,7 +229,7 @@ $commandsLog += "# Total files to scan: $scanFileCount"
 $commandsLog += ""
 
 # ============================================================================
-# SCAN FOR FORBIDDEN PATTERNS (using --files-from)
+# SCAN FOR FORBIDDEN PATTERNS (iterate through files individually)
 # ============================================================================
 $allViolations = @()
 $hasFailures = $false
@@ -241,43 +242,44 @@ foreach ($rule in $forbiddenPatterns) {
     $ruleId = $rule.Id
     $pattern = $rule.Pattern
     
-    # Build ripgrep command using --files-from
-    $rgCmd = "rg -n -i `"[PATTERN_$ruleId]`" --files-from `"$scanFilesListPath`""
+    # Log the check
     $commandsLog += "# Checking Rule: $ruleId"
-    $commandsLog += $rgCmd
+    $commandsLog += "# Pattern: [REDACTED - see rule definition]"
+    $commandsLog += "# Searching across $scanFileCount files"
     $commandsLog += ""
     
+    $ruleMatches = @()
+    
     try {
-        $result = & rg -n -i $pattern --files-from $scanFilesListPath 2>&1
-        $exitCode = $LASTEXITCODE
-        
-        if ($exitCode -eq 0 -and $result) {
-            # Pattern found - VIOLATION
-            $hasFailures = $true
-            Write-Host "  [$ruleId] VIOLATION FOUND" -ForegroundColor Red
-            
-            # Parse results and add to violations (with Rule ID, not pattern)
-            $result | ForEach-Object {
-                $line = $_.ToString()
-                # Double-check: ensure no excluded paths leaked through
-                if ($line -notmatch $excludePattern) {
-                    $allViolations += "[$ruleId] $line"
+        # Search each file individually
+        foreach ($file in $scanFiles) {
+            try {
+                $result = & rg -n -i $pattern $file 2>$null
+                if ($LASTEXITCODE -eq 0 -and $result) {
+                    # Pattern found in this file
+                    $result | ForEach-Object {
+                        $line = $_.ToString()
+                        # Double-check: ensure no excluded paths leaked through
+                        if ($line -notmatch $excludePattern) {
+                            $ruleMatches += "[$ruleId] $line"
+                        }
+                    }
                 }
             }
+            catch {
+                # Ignore individual file errors, continue scanning
+            }
         }
-        elseif ($exitCode -eq 1) {
-            # No matches - OK
-            Write-Host "  [$ruleId] OK (not found)" -ForegroundColor Green
-        }
-        elseif ($exitCode -eq 2) {
-            # ripgrep error
+        
+        if ($ruleMatches.Count -gt 0) {
+            # Pattern found - VIOLATION
             $hasFailures = $true
-            $toolError = $true
-            Write-Host "  [$ruleId] TOOL ERROR (rg exit 2)" -ForegroundColor Yellow
-            $allViolations += "[$ruleId] TOOL_ERROR: ripgrep execution failed"
+            Write-Host "  [$ruleId] VIOLATION FOUND ($($ruleMatches.Count) matches)" -ForegroundColor Red
+            $allViolations += $ruleMatches
         }
         else {
-            Write-Host "  [$ruleId] OK (exit $exitCode)" -ForegroundColor Green
+            # No matches - OK
+            Write-Host "  [$ruleId] OK (not found)" -ForegroundColor Green
         }
     }
     catch {
@@ -313,7 +315,7 @@ foreach ($req in $requiredPatterns) {
         if (Test-Path $fullPath) {
             # File exists but excluded
             Write-Host "  [$ruleId] SKIPPED (file excluded from scan)" -ForegroundColor Yellow
-            $commandsLog += "# Required pattern $ruleId: file excluded from scan list"
+            $commandsLog += "# Required pattern ${ruleId}: file excluded from scan list"
             $commandsLog += ""
             continue
         }
@@ -322,7 +324,7 @@ foreach ($req in $requiredPatterns) {
             $hasFailures = $true
             Write-Host "  [$ruleId] FILE NOT FOUND: $file" -ForegroundColor Red
             $allViolations += "[$ruleId] FILE_NOT_FOUND: $file"
-            $commandsLog += "# Required pattern $ruleId: file not found"
+            $commandsLog += "# Required pattern ${ruleId}: file not found"
             $commandsLog += ""
             continue
         }

@@ -108,13 +108,13 @@ class ItadTaxonomySyncState(models.Model):
             record = self.create({"name": "Material Taxonomy Sync State"})
         return record
     
-    @api.model
-    def create(self, vals):
+    @api.model_create_multi
+    def create(self, vals_list):
         """Enforce singleton pattern"""
-        existing = self.search([])
-        if existing:
+        existing = self.search([], limit=1)
+        if existing or len(vals_list) > 1:
             raise UserError(
                 "Only one taxonomy sync state record is allowed. "
                 "The existing record will be updated automatically by the sync engine."
             )
-        return super().create(vals)
+        return super().create(vals_list)

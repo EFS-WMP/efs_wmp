@@ -36,5 +36,15 @@
                 </xpath>
             </field>
         </record>
+        <record id="view_fsm_order_search_itad_core" model="ir.ui.view">
+            <field name="name">fsm.order.search.itad.core</field>
+            <field name="model">fsm.order</field>
+            <field name="inherit_id" ref="fieldservice.fsm_order_search_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//filter[@name='my_orders']" position="attributes">
+                    <attribute name="domain">[('person_id.user_ids', '=', uid)]</attribute>
+                </xpath>
+            </field>
+        </record>
     </data>
 </odoo>
