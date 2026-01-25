@@ -19,7 +19,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U odoo"
+          --health-cmd "pg_isready -U odoo -d postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Clone OCA field-service
         run: |
@@ -56,12 +58,12 @@ jobs:
       - name: Install smoke (-i itad_core)
         run: |
           docker run --rm \
-            --network host \
+            --network "${{ job.services.postgres.network }}" \
             -v "${{ github.workspace }}:/mnt/extra-addons" \
             odoo:18.0 \
             odoo \
               -c /dev/null \
-              --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
+              --db_host=postgres --db_port=5432 --db_user=odoo --db_password=odoo \
               -d itad_ci \
               --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/addons/odoo18/oca/field-service \
               -i itad_core \
@@ -71,12 +73,12 @@ jobs:
       - name: Upgrade smoke (-u itad_core)
         run: |
           docker run --rm \
-            --network host \
+            --network "${{ job.services.postgres.network }}"\
             -v "${{ github.workspace }}:/mnt/extra-addons" \
             odoo:18.0 \
             odoo \
               -c /dev/null \
-              --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
+              --db_host=postgres --db_port=5432 --db_user=odoo --db_password=odoo \
               -d itad_ci \
               --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/addons/odoo18/oca/field-service \
               -u itad_core \
