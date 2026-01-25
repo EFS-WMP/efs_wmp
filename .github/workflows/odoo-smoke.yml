@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -39,6 +39,10 @@ jobs:
 
       - name: Install smoke (-i itad_core)
         run: |
+          ls -la
+          find . -maxdepth 4 -name "__manifest__.py" | head -n 50
+          test -f addons/common/itad_core/__manifest__.py && echo "itad_core OK" || (echo "itad_core NOT FOUND" && exit 1)
+          test -f oca/field-service/fieldservice/__manifest__.py && echo "fieldservice OK" || echo "fieldservice missing"
           docker run --rm \
             --network host \
             -v "${{ github.workspace }}:/mnt/extra-addons" \
