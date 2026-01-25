@@ -27,8 +27,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      - name: Clone OCA field-service
+        run: |
+          mkdir -p addons/odoo18/oca
+          git clone --depth 1 https://github.com/OCA/field-service.git addons/odoo18/oca/field-service
 
       # (Опционально) Покажем структуру, чтобы проще дебажить пути
       - name: List repo
@@ -37,31 +40,42 @@ jobs:
           ls -la addons || true
           ls -la addons/common || true
 
+      - name: Debug container odoo.conf
+        run: |
+          docker run --rm odoo:18.0 bash -lc 'ls -la /etc/odoo && echo "----" && (cat /etc/odoo/odoo.conf || true)'
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            nc -z 127.0.0.1 5432 && echo "Postgres is up" && exit 0
+            echo "waiting for postgres..."
+            sleep 1
+          done
+          echo "Postgres did not start in time" && exit 1
+
       - name: Install smoke (-i itad_core)
         run: |
-          ls -la
-          find . -maxdepth 4 -name "__manifest__.py" | head -n 50
-          test -f addons/common/itad_core/__manifest__.py && echo "itad_core OK" || (echo "itad_core NOT FOUND" && exit 1)
-          test -f oca/field-service/fieldservice/__manifest__.py && echo "fieldservice OK" || echo "fieldservice missing"
-          docker run --rm \
-            --network host \
+          docker run --rm --network host \
             -v "${{ github.workspace }}:/mnt/extra-addons" \
             odoo:18.0 \
             odoo \
+              --config=/dev/null \
               --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
               -d itad_ci \
-              --addons-path=...,/mnt/extra-addons/addons/common,/mnt/extra-addons/oca/field-service
+              --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/oca/field-service \
+              -i itad_core \
               --stop-after-init
+
 
       - name: Upgrade smoke (-u itad_core)
         run: |
-          docker run --rm \
-            --network host \
+          docker run --rm --network host \
             -v "${{ github.workspace }}:/mnt/extra-addons" \
             odoo:18.0 \
             odoo \
+              --config=/dev/null \
               --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
               -d itad_ci \
-              --addons-path=...,/mnt/extra-addons/addons/common,/mnt/extra-addons/oca/field-service
+              --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/oca/field-service \
               -u itad_core \
               --stop-after-init
