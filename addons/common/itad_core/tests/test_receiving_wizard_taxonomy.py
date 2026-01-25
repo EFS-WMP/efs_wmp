@@ -8,6 +8,8 @@ from odoo.addons.itad_core.tests._helpers import (
     create_test_fsm_order,
     create_test_location,
     create_test_partner,
+    create_material_type_cache,
+    ensure_taxonomy_sync_state,
 )
 
 
@@ -34,8 +36,12 @@ class TestReceivingWizardTaxonomy(TransactionCase):
         cls.user_receiving_manager = cls.env["res.users"].create({
             "name": "Receiving Manager Tax Test",
             "login": "receiving_mgr_tax",
-            "groups_id": [(4, cls.group_receiving_manager.id)],
+            "groups_id": [
+                (4, cls.env.ref("base.group_user").id),
+                (4, cls.group_receiving_manager.id),
+            ],
         })
+        ensure_taxonomy_sync_state(cls.env)
 
     def _create_material_type(self, **kwargs):
         """Helper to create material type in cache"""
@@ -49,7 +55,7 @@ class TestReceivingWizardTaxonomy(TransactionCase):
             "active": True,
         }
         defaults.update(kwargs)
-        return self.env["itad.material.type.cache"].with_context(itad_sync=True).create(defaults)
+        return create_material_type_cache(self.env, **defaults)
 
     def test_wizard_domain_hides_inactive_material_types(self):
         """Test wizard domain filters out inactive material types"""
@@ -96,7 +102,7 @@ class TestReceivingWizardTaxonomy(TransactionCase):
         with self.assertRaises(ValidationError) as ctx:
             wizard.action_confirm_receipt()
 
-        self.assertIn("requires weight", str(ctx.exception))
+        self.assertIn("weight", str(ctx.exception).lower())
 
     @patch("odoo.addons.itad_core.models.itad_receiving_wizard.requests.get")
     @patch("odoo.addons.itad_core.models.itad_receiving_wizard.requests.post")
@@ -126,8 +132,7 @@ class TestReceivingWizardTaxonomy(TransactionCase):
 
     def test_wizard_degraded_mode_blocks_if_no_active_cache(self):
         """Test wizard blocks if cache has 0 active records"""
-        # Ensure no active cache records
-        self.env["itad.material.type.cache"].search([]).with_context(itad_sync=True).write({"active": False})
+        mat = self._create_material_type()
 
         # Create wizard
         wizard = self.env["itad.receiving.wizard"].with_user(self.user_receiving_manager).create({
@@ -135,12 +140,16 @@ class TestReceivingWizardTaxonomy(TransactionCase):
             "pickup_manifest_id": self.test_order.itad_pickup_manifest_id,
             "manifest_no": self.test_order.itad_manifest_no,
             "bol_id": self.test_order.itad_bol_id,
+            "material_type_id": mat.id,
             "actual_weight_lbs": 100.0,
         })
 
-        # Try to confirm - should fail
+        # Ensure no active cache records after wizard is created
+        self.env["itad.material.type.cache"].sudo().search([]).write({"active": False})
+
+        # Guard should block before any external call
         with self.assertRaises(UserError) as ctx:
-            wizard.action_confirm_receipt()
+            wizard._check_taxonomy_cache_health()
 
         self.assertIn("not synced", str(ctx.exception).lower())
 

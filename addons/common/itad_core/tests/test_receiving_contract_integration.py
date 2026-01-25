@@ -7,6 +7,8 @@ from odoo.addons.itad_core.tests._helpers import (
     create_test_fsm_order,
     create_test_location,
     create_test_partner,
+    ensure_taxonomy_sync_state,
+    seed_taxonomy_cache,
 )
 
 
@@ -57,6 +59,8 @@ class TestReceivingContractIntegration(TransactionCase):
                 (4, cls.group_fsm_dispatcher.id),
             ],
         })
+        seed_taxonomy_cache(cls.env)
+        ensure_taxonomy_sync_state(cls.env)
 
     def _create_wizard(self):
         """Helper to create wizard with valid data"""

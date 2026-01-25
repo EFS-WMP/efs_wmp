@@ -2,6 +2,8 @@
 import uuid
 from typing import Any
 
+from odoo import fields
+
 
 def create_test_partner(env, name: str | None = None, *, is_company: bool = True):
     partner_name = name or f"Test Partner {uuid.uuid4().hex[:8]}"
@@ -74,3 +76,50 @@ def create_test_fsm_order(env, location, **vals: Any):
             params,
         )
     return order
+
+
+def create_material_type_cache(env, **overrides: Any):
+    """
+    Create a material type cache record as superuser for tests.
+    """
+    cache_model = env["itad.material.type.cache"].sudo()
+    code = overrides.get("code", "EW-CPU-001")
+    existing = cache_model.search([("code", "=", code)], limit=1)
+    if existing:
+        return existing
+
+    vals = {
+        "itad_core_uuid": overrides.get("itad_core_uuid", str(uuid.uuid4())),
+        "code": code,
+        "name": overrides.get("name", f"Test Material {code}"),
+        "stream": overrides.get("stream", "test"),
+        "requires_photo": overrides.get("requires_photo", False),
+        "requires_weight": overrides.get("requires_weight", False),
+        "active": overrides.get("active", True),
+    }
+    vals.update({k: v for k, v in overrides.items() if k not in vals})
+    return cache_model.create(vals)
+
+
+def seed_taxonomy_cache(env, codes=None):
+    """
+    Ensure taxonomy cache has active records for tests.
+    """
+    records = []
+    for code in codes or ["EW-CPU-001"]:
+        records.append(create_material_type_cache(env, code=code, active=True))
+    return records
+
+
+def ensure_taxonomy_sync_state(env, *, last_success_at=None):
+    """
+    Ensure taxonomy sync state singleton exists with a recent last_success_at.
+    """
+    sync_model = env["itad.taxonomy.sync.state"].sudo()
+    record = sync_model.search([], limit=1)
+    if not record:
+        record = sync_model.create({"name": "Material Taxonomy Sync State"})
+    if last_success_at is None:
+        last_success_at = fields.Datetime.now()
+    record.write({"last_success_at": last_success_at, "last_error": False})
+    return record

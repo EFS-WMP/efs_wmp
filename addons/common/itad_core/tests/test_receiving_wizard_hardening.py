@@ -8,6 +8,8 @@ from odoo.addons.itad_core.tests._helpers import (
     create_test_fsm_order,
     create_test_location,
     create_test_partner,
+    ensure_taxonomy_sync_state,
+    seed_taxonomy_cache,
 )
 
 
@@ -53,6 +55,8 @@ class TestReceivingWizardHardening(TransactionCase):
             "login": "regular_user",
             "groups_id": [(4, cls.env.ref("base.group_user").id)],
         })
+        seed_taxonomy_cache(cls.env)
+        ensure_taxonomy_sync_state(cls.env)
 
     def _create_wizard(self, user=None):
         """Helper to create wizard instance"""

@@ -8,6 +8,8 @@ from datetime import timedelta
 from odoo.tests.common import TransactionCase
 from odoo import fields
 
+from ._helpers import create_test_fsm_order, create_test_location, create_test_partner
+
 
 class TestOpsAlerts(TransactionCase):
     """Test operations alert computation."""
@@ -75,9 +77,9 @@ class TestOpsAlerts(TransactionCase):
         self.icp.set_param("itad_core.ops.outbox_window_minutes", "60")
         
         # Create failed outbox records
-        fsm_order = self.env["fsm.order"].create({
-            "location_id": self.env["fsm.location"].create({"name": "Test Loc"}).id,
-        })
+        partner = create_test_partner(self.env)
+        location = create_test_location(self.env, partner)
+        fsm_order = create_test_fsm_order(self.env, location)
         
         for i in range(7):
             self.env["itad.core.outbox"].create({

@@ -3,27 +3,47 @@
 This runbook captures the minimal, repeatable checks for Odoo 18 + OCA Field Service
 so we avoid false "green" signals during development and CI.
 
-## 1) Installability Smoke Test (Docker, Odoo 18)
+## 1) CI: Smoke gates (required) vs Tests (on-demand)
 
-**Goal:** confirm `itad_core` installs in the *exact* runtime environment.
+Required (merge gate):
+В GitHub Actions на каждый PR обязаны проходить install/upgrade smoke в Docker odoo:18.0:
 
-```bash
-# Inspect addons_path (inside the container)
-python3 -c "import os; print(os.environ.get('ODOO_RC',''))"
-grep -n "addons_path" /etc/odoo/odoo.conf || true
+Install smoke: установка itad_core на чистую базу (-i itad_core --stop-after-init)
 
-# Install + stop after init
-# NOTE: use the exact addons_path from /etc/odoo/odoo.conf in this container.
-# Example (replace with the paths from your odoo.conf):
-odoo \
-  --addons-path=/usr/lib/python3/dist-packages/odoo/addons,<custom_addons_path>,<oca_field_service_path> \
-  -d itad_test \
-  -i itad_core \
-  --stop-after-init
+Upgrade smoke: обновление itad_core на той же базе (-u itad_core --stop-after-init)
 
-Non-fatal warning to ignore during install/upgrade:
+Эти smoke-проверки считаются минимальной гарантией installability и корректного addons_path/OCA-зависимостей. Ветка main защищена правилами Branch Protection: merge невозможен без успешного прохождения smoke checks.
 
-- `Warn: Can't find .pfb for face 'Courier'` (font warning; does not block module init)
+Tests (not a merge gate yet):
+Полный прогон тестов Odoo (--test-enable) выполняется по запросу (manual) или по расписанию (nightly), чтобы не замедлять каждый PR:
+
+Manual run: GitHub → Actions → workflow odoo-tests → Run workflow
+
+Nightly run: по cron (если включено)
+
+Windows notes (Docker Desktop): use `--db_host=host.docker.internal`, run the container with `--entrypoint odoo` to avoid the default `db` host, and mount the repo to both `/mnt/extra-addons` and `/mnt/odoo-dev` (docs tests expect the latter).
+
+Windows Docker Desktop command (PowerShell):
+```powershell
+docker run --rm --entrypoint odoo `
+  -e ODOO_RC=/dev/null `
+  -v "${PWD}:/mnt/extra-addons" `
+  -v "${PWD}:/mnt/odoo-dev" `
+  odoo:18.0 `
+    --config=/dev/null `
+    --db_host=host.docker.internal --db_port=5432 --db_user=odoo --db_password=odoo `
+    -d itad_ci_tests `
+    --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/oca/field-service `
+    -i itad_core `
+    --test-enable --test-tags /itad_core `
+    --stop-after-init
+```
+
+Rationale:
+Smoke gates ловят критические ошибки установки/обновления и окружения (Docker + Postgres + addons_path). Полные тесты включаются отдельно, чтобы балансировать скорость PR-цикла и глубину проверки. Когда тесты стабилизируются и время прогона приемлемо — они переводятся в обязательные checks.
+
+How to enable tests as a PR gate later:
+Добавить --test-enable в install step smoke workflow (или включить отдельный test job), и отметить этот check как required в Branch Protection.
 ```
 
 ## 2) OCA Field Service Dependency Check

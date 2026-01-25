@@ -6,6 +6,8 @@ Phase 2.5: Variance Detection and Resolution Tests
 from odoo.tests.common import TransactionCase
 from odoo import fields
 
+from ._helpers import create_test_fsm_order, create_test_location, create_test_partner
+
 
 class TestVariance(TransactionCase):
     """Test variance detection and resolution workflow."""
@@ -17,15 +19,15 @@ class TestVariance(TransactionCase):
         cls.fsm_order = cls.env["fsm.order"]
         
         # Create test location
-        cls.test_location = cls.env["fsm.location"].create({"name": "Test Location"})
+        cls.test_partner = create_test_partner(cls.env)
+        cls.test_location = create_test_location(cls.env, cls.test_partner)
     
     def _now(self):
         return fields.Datetime.now()
     
     def _create_order(self, weight=1000, receipt_state="received"):
         """Helper to create test order."""
-        return self.fsm_order.create({
-            "location_id": self.test_location.id,
+        return create_test_fsm_order(self.env, self.test_location, **{
             "itad_receipt_state": receipt_state,
             "itad_receipt_weight_lbs": weight,
             "itad_receipt_confirmed_at": self._now(),

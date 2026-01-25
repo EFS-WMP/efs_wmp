@@ -49,6 +49,10 @@ jobs:
             sleep 1
           done
           echo "Postgres did not start in time" && exit 1
+      
+      - name: Manifest coverage
+        run: |
+          python3 scripts/manifest_coverage.py
 
       - name: Install smoke (-i itad_core)
         run: |
@@ -66,8 +70,6 @@ jobs:
               --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/addons/odoo18/oca/field-service \
               -i itad_core \
               --stop-after-init
-
-
 
       - name: Upgrade smoke (-u itad_core)
         run: |

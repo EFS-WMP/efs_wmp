@@ -121,6 +121,7 @@ class ItadMaterialSync(models.AbstractModel):
         
         # Find existing by itad_core_uuid ONLY (never match by code/name)
         existing = cache_model.search([("itad_core_uuid", "=", str(itad_core_uuid))], limit=1)
+        was_active = bool(existing.active) if existing else False
         
         # Parse source_updated_at (convert ISO8601 string to Odoo datetime)
         source_updated_at_iso = item.get("updated_at")
@@ -164,7 +165,7 @@ class ItadMaterialSync(models.AbstractModel):
                 existing.write({"last_synced_at": now})
                 
                 # Check for deactivation
-                if not vals["active"] and existing.active:
+                if not vals["active"] and was_active:
                     return "deactivated", existing
                 
                 return "unchanged", existing
@@ -173,7 +174,7 @@ class ItadMaterialSync(models.AbstractModel):
                 existing.write(vals)
                 
                 # Determine action
-                if not vals["active"] and existing.active:
+                if not vals["active"] and was_active:
                     return "deactivated", existing
                 else:
                     return "updated", existing

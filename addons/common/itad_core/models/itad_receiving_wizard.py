@@ -40,6 +40,10 @@ class ItadReceivingWizard(models.TransientModel):
         domain=[("active", "=", True)],
         help="Select the primary material type received from synced ITAD Core taxonomy.",
     )
+    material_type_code = fields.Char(
+        string="Material Type Code",
+        help="Compatibility field to map material type by code when material_type_id is not provided.",
+    )
 
     actual_weight_lbs = fields.Float(
         string="Actual Weight (lbs)",
@@ -111,6 +115,24 @@ class ItadReceivingWizard(models.TransientModel):
                 )
             else:
                 rec.customer_name = ""
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get("material_type_id") and vals.get("material_type_code"):
+                code = vals.get("material_type_code")
+                material = self.env["itad.material.type.cache"].search(
+                    [("code", "=", code)],
+                    limit=1,
+                )
+                if material:
+                    vals["material_type_id"] = material.id
+                else:
+                    raise UserError(
+                        _("Material type code '%(code)s' not found. Sync taxonomy and retry.")
+                        % {"code": code}
+                    )
+        return super().create(vals_list)
 
     def _get_config(self):
         """Get ITAD Core API configuration (reuse Phase 1 pattern)."""

@@ -1,0 +1,63 @@
+name: odoo-tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: postgres
+        ports: [ "5432:5432" ]
+        options: >-
+          --health-cmd "pg_isready -U odoo"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone OCA field-service (if needed)
+        run: |
+          mkdir -p oca
+          test -d oca/field-service || git clone --depth 1 https://github.com/OCA/field-service.git oca/field-service
+
+      - name: Verify addon paths
+        run: |
+          test -f addons/common/itad_core/__manifest__.py && echo "itad_core OK" || (echo "itad_core NOT FOUND" && exit 1)
+          test -f oca/field-service/fieldservice/__manifest__.py && echo "fieldservice OK" || (echo "fieldservice missing" && exit 1)
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            nc -z 127.0.0.1 5432 && echo "Postgres is up" && exit 0
+            echo "waiting for postgres..."
+            sleep 1
+          done
+          echo "Postgres did not start in time" && exit 1
+
+      - name: Run tests on install
+        run: |
+          docker run --rm --network host \
+            -e ODOO_RC=/dev/null \
+            -v "${{ github.workspace }}:/mnt/extra-addons" \
+            -v "${{ github.workspace }}:/mnt/odoo-dev" \
+            odoo:18.0 \
+            odoo \
+              --config=/dev/null \
+              --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
+              -d itad_ci_tests \
+              --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/oca/field-service \
+              -i itad_core \
+              --test-enable \
+              --test-tags /itad_core \
+              --stop-after-init

@@ -1,9 +1,14 @@
 import unittest
+import importlib
+import pkgutil
+import logging
 from contextlib import contextmanager
 
 from odoo.exceptions import UserError
 from odoo.tests.common import TransactionCase
 from odoo.tools import config
+
+_logger = logging.getLogger(__name__)
 
 if config["test_enable"]:
     _original_assert_raises = TransactionCase._assertRaises
@@ -19,15 +24,17 @@ if config["test_enable"]:
 
     TransactionCase._assertRaises = _assert_raises_no_savepoint
 
-from . import test_itad_config
-from . import test_outbox_idempotency
-from . import test_no_attrs_states
-from . import test_phase1_vertical_slice
-from . import test_receiving_wizard_hardening
-from . import test_receiving_contract_integration
-from . import test_receiving_api_compat_check
-from . import test_receiving_rate_limit
-from . import test_receiving_audit_archiving
-from . import test_migration_phase2_1_to_2_2
-from . import test_phase2_2a_evidence_docs
+def _import_all_test_modules():
+    """
+    Ensure all test modules are loaded when Odoo test runner imports itad_core.tests.
+    This prevents "false-green" runs when new test_*.py files are added but not imported.
+    """
+    module_names = sorted(
+        m.name for m in pkgutil.iter_modules(__path__)
+        if m.name.startswith("test_")
+    )
+    for name in module_names:
+        importlib.import_module(f"{__name__}.{name}")
+
+_import_all_test_modules()
 
