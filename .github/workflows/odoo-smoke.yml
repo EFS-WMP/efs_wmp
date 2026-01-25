@@ -27,8 +27,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      - name: Clone OCA field-service
+        run: |
+          mkdir -p addons/odoo18/oca
+          git clone --depth 1 https://github.com/OCA/field-service.git addons/odoo18/oca/field-service
 
       # (Опционально) Покажем структуру, чтобы проще дебажить пути
       - name: List repo
