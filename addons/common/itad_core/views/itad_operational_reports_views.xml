@@ -10,7 +10,7 @@
             <pivot string="Received Weight by Material (Operational - Not Billing)">
                 <field name="itad_receipt_material_code" type="row"/>
                 <field name="itad_receipt_weight_lbs" type="measure"/>
-                <field name="date_order" type="col" interval="month"/>
+                <field name="date_end" type="col" interval="month"/>
             </pivot>
         </field>
     </record>
@@ -22,9 +22,9 @@
         <field name="priority">99</field>
         <field name="arch" type="xml">
             <list string="Received Weight by Material (Operational - Not Billing)" create="false" delete="false" edit="false">
-                <field name="date_order"/>
+                <field name="date_end"/>
                 <field name="name" string="Order"/>
-                <field name="partner_id" string="Customer"/>
+                <field name="customer_name" string="Customer"/>
                 <field name="itad_receipt_material_code"/>
                 <field name="itad_receipt_weight_lbs"/>
                 <field name="stage_id"/>
@@ -40,16 +40,16 @@
         <field name="arch" type="xml">
             <search string="Search Receiving Weight">
                 <field name="itad_receipt_material_code"/>
-                <field name="partner_id"/>
-                <filter string="This Month" name="this_month" domain="[('date_order', '&gt;=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d'))]"/>
-                <filter string="Last 30 Days" name="last_30" domain="[('date_order', '&gt;=', (context_today() - relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
-                <filter string="This Year" name="this_year" domain="[('date_order', '&gt;=', (context_today() - relativedelta(month=1, day=1)).strftime('%Y-%m-%d'))]"/>
+                <field name="customer_name"/>
+                <filter string="This Month" name="this_month" domain="[('date_end', '&gt;=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d'))]"/>
+                <filter string="Last 30 Days" name="last_30" domain="[('date_end', '&gt;=', (context_today() - relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <filter string="This Year" name="this_year" domain="[('date_end', '&gt;=', (context_today() - relativedelta(month=1, day=1)).strftime('%Y-%m-%d'))]"/>
                 <separator/>
                 <filter string="With Weight" name="has_weight" domain="[('itad_receipt_weight_lbs', '&gt;', 0)]"/>
                 <group expand="0" string="Group By">
                     <filter string="Material Type" name="group_material" context="{'group_by': 'itad_receipt_material_code'}"/>
-                    <filter string="Customer" name="group_customer" context="{'group_by': 'partner_id'}"/>
-                    <filter string="Month" name="group_month" context="{'group_by': 'date_order:month'}"/>
+                    <filter string="Customer" name="group_customer" context="{'group_by': 'customer_name'}"/>
+                    <filter string="Month" name="group_month" context="{'group_by': 'date_end:month'}"/>
                 </group>
             </search>
         </field>
@@ -63,6 +63,7 @@
         <field name="view_id" ref="view_itad_receiving_weight_pivot"/>
         <field name="search_view_id" ref="view_itad_receiving_weight_search"/>
         <field name="context">{'search_default_has_weight': 1}</field>
+        <field name="domain">[('date_end','!=',False)]</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 No receiving data yet
@@ -81,9 +82,9 @@
         <field name="priority">98</field>
         <field name="arch" type="xml">
             <list string="Customer Receipt History (Operational - Not Billing)" create="false" delete="false" edit="false">
-                <field name="date_order"/>
+                <field name="date_end"/>
                 <field name="name" string="Order"/>
-                <field name="partner_id" string="Customer"/>
+                <field name="customer_name" string="Customer"/>
                 <field name="itad_receipt_material_code"/>
                 <field name="itad_receipt_weight_lbs"/>
                 <field name="itad_receipt_notes" optional="hide"/>
@@ -99,16 +100,16 @@
         <field name="priority">98</field>
         <field name="arch" type="xml">
             <search string="Search Customer Receipts">
-                <field name="partner_id"/>
+                <field name="customer_name"/>
                 <field name="itad_receipt_material_code"/>
                 <field name="name"/>
-                <filter string="This Month" name="this_month" domain="[('date_order', '&gt;=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d'))]"/>
-                <filter string="Last 90 Days" name="last_90" domain="[('date_order', '&gt;=', (context_today() - relativedelta(days=90)).strftime('%Y-%m-%d'))]"/>
+                <filter string="This Month" name="this_month" domain="[('date_end', '&gt;=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d'))]"/>
+                <filter string="Last 90 Days" name="last_90" domain="[('date_end', '&gt;=', (context_today() - relativedelta(days=90)).strftime('%Y-%m-%d'))]"/>
                 <separator/>
                 <group expand="0" string="Group By">
-                    <filter string="Customer" name="group_customer" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Customer" name="group_customer" context="{'group_by': 'customer_name'}"/>
                     <filter string="Material Type" name="group_material" context="{'group_by': 'itad_receipt_material_code'}"/>
-                    <filter string="Date" name="group_date" context="{'group_by': 'date_order:day'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'date_end:day'}"/>
                 </group>
             </search>
         </field>
@@ -122,6 +123,7 @@
         <field name="view_id" ref="view_itad_customer_receipt_tree"/>
         <field name="search_view_id" ref="view_itad_customer_receipt_search"/>
         <field name="context">{}</field>
+        <field name="domain">[('date_end','!=',False)]</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 No receipt history yet

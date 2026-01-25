@@ -1,0 +1,9 @@
+# Phase 0 Verification Matches
+# Timestamp: 2026-01-25T02:36:34Z
+# Total Violations: 5
+
+[SOR_COMP_001] TOOL_ERROR: ripgrep execution failed
+[SOR_COMP_002] TOOL_ERROR: ripgrep execution failed
+[SOR_COMP_003] TOOL_ERROR: ripgrep execution failed
+[SOR_ACC_001] TOOL_ERROR: ripgrep execution failed
+[SOR_ALL_001] TOOL_ERROR: ripgrep execution failed

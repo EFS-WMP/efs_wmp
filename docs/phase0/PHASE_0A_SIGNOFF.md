@@ -25,19 +25,32 @@ The following artifacts are approved as the authoritative Phase 0A documentation
 
 | Role | Name | Date (UTC) | Signature/Approval Link |
 |------|------|------------|-------------------------|
-| Engineering TL | | | |
-| Solution Architect | | | |
-| Compliance | | | |
-| Ops Lead | | | |
+| Engineering TL | *Pending* | Target: 2026-01-31 | |
+| Solution Architect | *Pending* | Target: 2026-01-31 | |
+| Compliance | *Pending* | Target: 2026-01-31 | |
+| Ops Lead | *Pending* | Target: 2026-01-31 | |
+
+> [!WARNING]
+> **Signatures Required**: Phase 0A gate verification has passed. Awaiting stakeholder sign-off to proceed to Phase 1 implementation.
 
 > [!IMPORTANT]
 > All signatories must review the approved artifacts above before signing. Signing indicates agreement that the SoR boundaries and integration invariants are correct and ready for Phase 1 implementation.
 
 ## Evidence
 
-- **Commit SHA**: `<pending — populate after sign-off commit>`
+- **Commit SHA**: `b8a8707`
+- **Verification Run**: [2026-01-24_183908](./verification_runs/2026-01-24_183908/) — **PASS** ✅
+  - Timestamp (UTC): 2026-01-25T02:39:08Z
+  - Files Scanned: 11
+  - Violations Found: 0
+  - All forbidden patterns: NOT FOUND ✅
+  - All required patterns: FOUND ✅
+  - AC-A2 Compliance: No `archive\` or `verification_runs\` paths in matches ✅
+- **Verification Log**: See [PHASE_0_VERIFICATION_LOG.md](./PHASE_0_VERIFICATION_LOG.md) for complete verification history
 - **PR / Approval Link**: `<pending — link to PR or approval record>`
-- **Verification Run**: See [PHASE_0_VERIFICATION_LOG.md](./PHASE_0_VERIFICATION_LOG.md) for latest verification results
+
+> [!NOTE]
+> The verification gate passed successfully with zero violations. All System-of-Record boundaries are correctly documented and enforced.
 
 ## Change Control
 

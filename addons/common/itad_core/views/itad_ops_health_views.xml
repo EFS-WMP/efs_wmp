@@ -18,7 +18,7 @@
                 <field name="action_hint"/>
                 <field name="last_evaluated_at"/>
                 <templates>
-                    <t t-name="kanban-box">
+                    <t t-name="card">
                         <div t-attf-class="oe_kanban_global_click o_kanban_card_{{ severity == 'critical' and 'danger' or severity == 'warn' and 'warning' or 'success' }}">
                             <div class="o_kanban_card_header">
                                 <div class="o_kanban_card_header_title">
@@ -126,18 +126,8 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
             <form create="false" delete="false">
-                <header>
-                    <button name="%(itad_core.action_sync_taxonomy)d" type="action"
-                            string="Sync Now" class="btn-primary"
-                            groups="itad_core.group_receiving_manager"/>
-                </header>
+                <header/>
                 <sheet>
-                    <div class="oe_button_box" name="button_box">
-                        <button class="oe_stat_button" type="object"
-                                name="action_view_audit_logs" icon="fa-list">
-                            <span class="o_stat_text">Audit Logs</span>
-                        </button>
-                    </div>
                     <div class="oe_title">
                         <h1>Taxonomy Sync Status</h1>
                     </div>

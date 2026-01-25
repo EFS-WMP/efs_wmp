@@ -32,6 +32,7 @@ Phase 2.3: Material Taxonomy Sync
         "security/itad_core_integration_group.xml",
         "security/ir.model.access.csv",
         "data/itad_core_system_parameters.xml",
+        "views/itad_menu_root.xml",
         "views/itad_outbox_views.xml",
         "data/itad_taxonomy_sync_cron.xml",
         "data/itad_material_type_sync_action.xml",

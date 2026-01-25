@@ -154,8 +154,8 @@ class ItadMaterialTypeCache(models.Model):
         ),
     ]
     
-    @api.model
-    def create(self, vals):
+    @api.model_create_multi
+    def create(self, vals_list):
         """
         Override create to enforce read-only cache unless integration group OR superuser.
         
@@ -168,7 +168,7 @@ class ItadMaterialTypeCache(models.Model):
                 "Material types are read-only cache synchronized from ITAD Core. "
                 "They cannot be manually created. Use 'Sync Now' button to refresh taxonomy."
             )
-        return super().create(vals)
+        return super().create(vals_list)
     
     def write(self, vals):
         """
