@@ -30,11 +30,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Clone OCA field-service
-        run: |
-          mkdir -p addons/odoo18/oca
-          git clone --depth 1 https://github.com/OCA/field-service.git addons/odoo18/oca/field-service
-
       # (Опционально) Покажем структуру, чтобы проще дебажить пути
       - name: List repo
         run: |
@@ -70,10 +65,11 @@ jobs:
               --stop-after-init
 
 
+
       - name: Upgrade smoke (-u itad_core)
         run: |
           docker run --rm \
-            --network "${{ job.services.postgres.network }}"\
+            --network "${{ job.services.postgres.network }}" \
             -v "${{ github.workspace }}:/mnt/extra-addons" \
             odoo:18.0 \
             odoo \
@@ -83,4 +79,5 @@ jobs:
               --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/addons/odoo18/oca/field-service \
               -u itad_core \
               --stop-after-init
+
 
