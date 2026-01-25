@@ -7,11 +7,11 @@ Phase 2.2 production hardening and backward compatibility for Receiving Dashboar
 
 ## Phase 2.2 Gate Checklist
 - [ ] `itad_core` test suite passes with `--test-enable` in a one-shot container run.
-- [ ] Install/upgrade smoke test passes in Docker (`-i`, `-u`) with pinned OCA Field Service paths.
+- [x] Install/upgrade smoke test passes in Docker (`-i`, `-u`) with pinned OCA Field Service paths.
 - [ ] Receiving wizard error-state and audit-log paths validated for UserError scenarios.
 - [ ] Phase 2.1 -> 2.2 migration dry-run and apply reports match.
-- [ ] Cron records active for outbox + audit archiving.
-- [ ] `python3 scripts/odoo_ci_checks.py` reports no manifest-coverage or addon hygiene gaps.
+- [x] Cron records active for outbox + audit archiving.
+- [x] `python3 scripts/odoo_ci_checks.py` reports no manifest-coverage or addon hygiene gaps.
 
 ### One-shot Upgrade/Test Pattern
 1) Stop running Odoo service (if active):
