@@ -1,0 +1,63 @@
+name: odoo-smoke
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  install-upgrade-smoke:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U odoo"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # (Опционально) Покажем структуру, чтобы проще дебажить пути
+      - name: List repo
+        run: |
+          ls -la
+          ls -la addons || true
+          ls -la addons/common || true
+
+      - name: Install smoke (-i itad_core)
+        run: |
+          docker run --rm \
+            --network host \
+            -v "${{ github.workspace }}:/mnt/extra-addons" \
+            odoo:18.0 \
+            odoo \
+              --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
+              -d itad_ci \
+              --addons-path=...,/mnt/extra-addons/addons/common,/mnt/extra-addons/oca/field-service
+              --stop-after-init
+
+      - name: Upgrade smoke (-u itad_core)
+        run: |
+          docker run --rm \
+            --network host \
+            -v "${{ github.workspace }}:/mnt/extra-addons" \
+            odoo:18.0 \
+            odoo \
+              --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
+              -d itad_ci \
+              --addons-path=...,/mnt/extra-addons/addons/common,/mnt/extra-addons/oca/field-service
+              -u itad_core \
+              --stop-after-init

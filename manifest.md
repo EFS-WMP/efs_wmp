@@ -2,6 +2,8 @@
 
 ## Changed/Created Files
 
+- `runbook_odoo_quality_checks.md`: Pointer to the canonical Odoo 18 quality gates runbook under `docs/`.
+- `docs/runbook_odoo_quality_checks.md`: Runbook of install smoke tests, addons_path/OCA checks, manifest coverage, SoR guardrails, and cron/registry smoke checks for Odoo 18.
 - `addons/common/itad_core/scripts/capture_phase2_2a_test_evidence.py`: Captures Phase 2.2a one-shot Odoo test output, DB list, sha256s, and summary metadata under `docs/evidence/phase2.2a/`.
 - `addons/common/itad_core/tests/test_phase2_2a_evidence_docs.py`: Smoke-test asserting Phase 2.2a evidence paths and canonical commands are referenced in repo runbooks.
 - `docker/odoo18/docker-compose.odoo18.yml`: Mounts repo root read-only at `/mnt/odoo-dev` for doc-verification tests.
@@ -26,6 +28,9 @@
 - `itad-core/tests/test_sor_guard_snapshot_exemptions.py`: New test suite validating SoR guard snapshot exemption rules.
 
 ## Key Decisions
+
+### Odoo 18 Quality Gates Runbook
+Documented the installability smoke test, addons_path/OCA checks, manifest coverage via `scripts/odoo_ci_checks.py`, and post-install registry/cron validation in a single runbook for consistent pre-merge checks.
 
 ### Phase 2.2a Evidence Capture and CI Gate
 Evidence capture is standardized via a one-shot compose run that writes audit artifacts under `docs/evidence/phase2.2a/`. CI gate integration is pending until an existing CI configuration is added to the repo.
