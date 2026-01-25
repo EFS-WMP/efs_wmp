@@ -14,11 +14,16 @@ grep -n "addons_path" /etc/odoo/odoo.conf || true
 
 # Install + stop after init
 # NOTE: use the exact addons_path from /etc/odoo/odoo.conf in this container.
+# Example (replace with the paths from your odoo.conf):
 odoo \
-  --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons-custom,/mnt/extra-addons-odoo18/oca/field-service \
+  --addons-path=/usr/lib/python3/dist-packages/odoo/addons,<custom_addons_path>,<oca_field_service_path> \
   -d itad_test \
   -i itad_core \
   --stop-after-init
+
+Non-fatal warning to ignore during install/upgrade:
+
+- `Warn: Can't find .pfb for face 'Courier'` (font warning; does not block module init)
 ```
 
 ## 2) OCA Field Service Dependency Check
@@ -27,14 +32,14 @@ odoo \
 
 ```bash
 # Use the same base path that appears in addons_path.
-ls -la /mnt/extra-addons-custom
-find /mnt/extra-addons-odoo18/oca/field-service -maxdepth 3 -type f -name "__manifest__.py" | grep -i "fieldservice" || true
+ls -la <custom_addons_path>
+find <oca_field_service_path> -maxdepth 3 -type f -name "__manifest__.py" | grep -i "fieldservice" || true
 ```
 
 Recommended layout:
 
-- `/mnt/extra-addons-custom` (this repo in the container)
-- `/mnt/extra-addons-odoo18/oca/field-service` (OCA)
+- `<custom_addons_path>` (this repo in the container)
+- `<oca_field_service_path>` (OCA)
 
 And `addons_path` must include both.
 
