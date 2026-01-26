@@ -5,21 +5,26 @@ Phase 2.2 production hardening and backward compatibility for Receiving Dashboar
 
 ## Deployment Sequence
 
-## Phase 2.2 Gate Checklist
-- [ ] `itad_core` test suite passes with `--test-enable` in a one-shot container run.
+## Phase 2.2 Gate Checklist (Required vs Optional)
+**Required (PR gate / must pass):**
+- [x] **odoo-smoke** workflow passes (install + upgrade). See `.github/workflows/odoo-smoke.yml` job `install-upgrade-smoke`.
+- [x] **Manifest coverage** passes via `python3 scripts/manifest_coverage.py` (also runs in `odoo-smoke`).
 - [x] Install/upgrade smoke test passes in Docker (`-i`, `-u`) with pinned OCA Field Service paths.
-- [ ] Receiving wizard error-state and audit-log paths validated for UserError scenarios.
-- [ ] Phase 2.1 -> 2.2 migration dry-run and apply reports match.
-- [x] Cron records active for outbox + audit archiving.
-- [x] `python3 scripts/odoo_ci_checks.py` reports no manifest-coverage or addon hygiene gaps.
 
-### One-shot Upgrade/Test Pattern
+**Optional (manual/nightly / not blocking PR unless explicitly promoted):**
+- [ ] **odoo-tests** workflow passes (`--test-enable --test-tags /itad_core`). See `.github/workflows/odoo-tests.yml` job `tests`.
+- [ ] Receiving wizard error-state and audit-log paths validated for `UserError` scenarios.
+- [ ] Phase 2.1 → 2.2 migration dry-run and apply reports match.
+- [ ] Cron records active for outbox + audit archiving.
+
+### One-shot Upgrade/Test Pattern (Manual Evidence)
 1) Stop running Odoo service (if active):
    - `docker compose -p odoo18 -f docker/odoo18/docker-compose.odoo18.yml stop odoo18`
 2) Run one-shot upgrade/tests:
    - `docker compose -p odoo18 -f docker/odoo18/docker-compose.odoo18.yml run --rm -T odoo18 odoo --test-enable -d odoo18_db -c /etc/odoo/odoo.conf -u itad_core --stop-after-init --no-http`
 3) Capture evidence artifacts:
    - `python3 addons/common/itad_core/scripts/capture_phase2_2a_test_evidence.py` (writes `docs/evidence/phase2.2a/`)
+   - Store logs/screenshots under `docs/evidence/phase2.2/` (see “Evidence Packet” below).
 4) Restart service:
    - `docker compose -p odoo18 -f docker/odoo18/docker-compose.odoo18.yml up -d odoo18`
 
@@ -30,6 +35,11 @@ Phase 2.2 production hardening and backward compatibility for Receiving Dashboar
 4. ⏳ **Backup Database** - Full backup before deployment
 
 ### Deployment to Pre-Production
+
+### Evidence Packet (Minimum)
+- **Logs:** Install/upgrade smoke output + manifest coverage output.
+- **Screenshots:** Outbox list + cron list (Ops menu), stored under `docs/evidence/phase2.2/`.
+- **Checklist:** Completed pre-prod gate checklist in `docs/preprod_gate_report.md`.
 
 #### Step 1: Module Upgrade
 ```powershell

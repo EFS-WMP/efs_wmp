@@ -6,7 +6,8 @@ so we avoid false "green" signals during development and CI.
 ## 1) CI: Smoke gates (required) vs Tests (on-demand)
 
 Required (merge gate):
-В GitHub Actions на каждый PR обязаны проходить install/upgrade smoke в Docker odoo:18.0:
+В GitHub Actions на каждый PR обязаны проходить install/upgrade smoke в Docker odoo:18.0.
+Workflow: `.github/workflows/odoo-smoke.yml` (job `install-upgrade-smoke`).
 
 Install smoke: установка itad_core на чистую базу (-i itad_core --stop-after-init)
 
@@ -17,12 +18,15 @@ Upgrade smoke: обновление itad_core на той же базе (-u itad
 Tests (not a merge gate yet):
 Полный прогон тестов Odoo (--test-enable) выполняется по запросу (manual) или по расписанию (nightly), чтобы не замедлять каждый PR:
 
-Manual run: GitHub → Actions → workflow odoo-tests → Run workflow
+Manual run: GitHub → Actions → workflow `odoo-tests` → Run workflow
 
-Nightly run: по cron (если включено)
+Nightly run: по cron (если включено). Workflow: `.github/workflows/odoo-tests.yml`.
 
-Current odoo-tests runs only `--test-tags /itad_core` and mounts `/mnt/odoo-dev`.
-Local commands and environment rules are defined in Section 2 (single source of truth).
+Windows notes (Docker Desktop): use `--db_host=host.docker.internal`, run the container with `--entrypoint odoo` to avoid the default `db` host, and mount the repo to both `/mnt/extra-addons` and `/mnt/odoo-dev` (docs/tests expect the latter).
+
+**DB host troubleshooting (Windows):**
+- Symptom: `could not translate host name "db"` or connection timeouts.
+- Fix: run with `--entrypoint odoo` and `--db_host=host.docker.internal` (see command below).
 
 Rationale:
 Smoke gates ловят критические ошибки установки/обновления и окружения (Docker + Postgres + addons_path). Полные тесты включаются отдельно, чтобы балансировать скорость PR-цикла и глубину проверки. Когда тесты стабилизируются и время прогона приемлемо — они переводятся в обязательные checks.
