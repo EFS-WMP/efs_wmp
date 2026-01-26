@@ -1,0 +1,5 @@
+Command: docker version
+Timestamp (UTC): 2026-01-26T07:41:22Z
+Result: FAILED
+Output:
+  bash: command not found: docker

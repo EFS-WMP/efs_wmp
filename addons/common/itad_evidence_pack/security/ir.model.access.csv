@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_itad_evidence_pack_user,itad.evidence.pack user,model_itad_evidence_pack,base.group_user,1,0,0,0
+access_itad_evidence_pack_integration,itad.evidence.pack integration,model_itad_evidence_pack,itad_core.group_itad_integration,1,1,1,0

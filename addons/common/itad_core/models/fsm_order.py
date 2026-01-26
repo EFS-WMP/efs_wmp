@@ -15,7 +15,13 @@ class FsmOrder(models.Model):
     # Phase 1: only FSM is SoR; store ITAD Core refs as read-only
 # Находим itad_submit_state = fields.Selection(
     itad_submit_state = fields.Selection(
-        [("new", "New"), ("pending", "Pending"), ("sent", "Sent"), ("failed", "Failed")],
+        [
+            ("new", "New"),
+            ("pending", "Pending"),
+            ("sent", "Sent"),
+            ("failed", "Failed"),
+            ("dead_letter", "Dead Letter"),
+        ],
         default="new",
         readonly=True,
         copy=False,
@@ -215,11 +221,14 @@ class FsmOrder(models.Model):
                     raise UserError(_("Pickup Manifest already submitted."))
                 if outbox.state == "failed":
                     outbox.action_retry()
+                submit_state = self.env["itad.core.outbox"]._map_outbox_state_to_submit_state(
+                    outbox.state
+                )
                 order.write(
                     {
                         "itad_outbox_id": outbox.id,
                         "itad_outbox_last_id": outbox.id,
-                        "itad_submit_state": outbox.state,
+                        "itad_submit_state": submit_state,
                     }
                 )
                 continue

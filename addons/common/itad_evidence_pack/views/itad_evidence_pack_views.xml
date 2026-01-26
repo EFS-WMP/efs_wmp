@@ -1,0 +1,65 @@
+<odoo>
+    <data>
+        <record id="view_itad_evidence_pack_tree" model="ir.ui.view">
+            <field name="name">itad.evidence.pack.tree</field>
+            <field name="model">itad.evidence.pack</field>
+            <field name="arch" type="xml">
+                <list>
+                    <field name="name"/>
+                    <field name="source_model"/>
+                    <field name="source_record_ref"/>
+                    <field name="captured_at"/>
+                    <field name="captured_by"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_itad_evidence_pack_form" model="ir.ui.view">
+            <field name="name">itad.evidence.pack.form</field>
+            <field name="model">itad.evidence.pack</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="name"/>
+                                <field name="source_model"/>
+                                <field name="source_record_ref"/>
+                                <field name="captured_at"/>
+                                <field name="captured_by" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="notes"/>
+                            </group>
+                        </group>
+                        <group>
+                            <field name="snapshot_json" widget="text"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_itad_evidence_pack" model="ir.actions.act_window">
+            <field name="name">Evidence Pack</field>
+            <field name="res_model">itad.evidence.pack</field>
+            <field name="view_mode">list,form</field>
+            <field name="groups_id" eval="[(4, ref('itad_core.group_itad_integration'))]"/>
+        </record>
+
+        <menuitem
+            id="menu_itad_evidence_root"
+            name="Evidence Pack"
+            sequence="200"
+            groups="itad_core.group_itad_integration"
+        />
+        <menuitem
+            id="menu_itad_evidence_pack"
+            name="Evidence Packs"
+            parent="menu_itad_evidence_root"
+            action="action_itad_evidence_pack"
+            sequence="10"
+            groups="itad_core.group_itad_integration"
+        />
+    </data>
+</odoo>
