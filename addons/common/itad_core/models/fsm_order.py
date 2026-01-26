@@ -15,7 +15,13 @@ class FsmOrder(models.Model):
     # Phase 1: only FSM is SoR; store ITAD Core refs as read-only
 # Находим itad_submit_state = fields.Selection(
     itad_submit_state = fields.Selection(
-        [("new", "New"), ("pending", "Pending"), ("sent", "Sent"), ("failed", "Failed")],
+        [
+            ("new", "New"),
+            ("pending", "Pending"),
+            ("sent", "Sent"),
+            ("failed", "Failed"),
+            ("dead_letter", "Dead Letter"),
+        ],
         default="new",
         readonly=True,
         copy=False,
