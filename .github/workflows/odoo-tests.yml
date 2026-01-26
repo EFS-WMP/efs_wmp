@@ -45,14 +45,27 @@ jobs:
           done
           echo "Postgres did not start in time" && exit 1
 
+      - name: Debug Odoo config inside image
+        run: |
+          docker run --rm odoo:18.0 bash -lc '
+            echo "ODOO_RC=$ODOO_RC";
+            echo "----- /etc/odoo/odoo.conf -----";
+            cat /etc/odoo/odoo.conf || true;
+          '
+
+      - name: Debug workflow ref
+        run: |
+          git rev-parse HEAD
+          git log -1 --oneline
+
       - name: Run tests on install
         run: |
           docker run --rm --network host \
+            --entrypoint odoo \
             -e ODOO_RC=/dev/null \
             -v "${{ github.workspace }}:/mnt/extra-addons" \
             -v "${{ github.workspace }}:/mnt/odoo-dev" \
             odoo:18.0 \
-            odoo \
               --config=/dev/null \
               --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
               -d itad_ci_tests \
@@ -61,3 +74,4 @@ jobs:
               --test-enable \
               --test-tags /itad_core \
               --stop-after-init
+
