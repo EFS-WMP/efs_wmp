@@ -98,6 +98,16 @@ class ItadCoreOutbox(models.Model):
             return False
         return True
 
+    @api.model
+    def _map_outbox_state_to_submit_state(self, outbox_state):
+        mapping = {
+            "pending": "pending",
+            "sent": "sent",
+            "failed": "failed",
+            "dead_letter": "failed",
+        }
+        return mapping.get(outbox_state, "failed")
+
     def _send_to_itad_core(self):
         self.ensure_one()
         if not self.payload_json:
@@ -263,7 +273,7 @@ class ItadCoreOutbox(models.Model):
                     "dead_letter_reason": False,
                 }
             )
-            rec.order_id.write(
+            rec.order_id.sudo().write(
                 {
                     "itad_submit_state": "pending",
                     "itad_last_error": False,
