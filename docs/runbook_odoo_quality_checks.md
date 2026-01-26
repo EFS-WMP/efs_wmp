@@ -21,9 +21,103 @@ Manual run: GitHub → Actions → workflow odoo-tests → Run workflow
 
 Nightly run: по cron (если включено)
 
-Windows notes (Docker Desktop): use `--db_host=host.docker.internal`, run the container with `--entrypoint odoo` to avoid the default `db` host, and mount the repo to both `/mnt/extra-addons` and `/mnt/odoo-dev` (docs tests expect the latter).
+Current odoo-tests runs only `--test-tags /itad_core` and mounts `/mnt/odoo-dev`.
+Local commands and environment rules are defined in Section 2 (single source of truth).
 
-Windows Docker Desktop command (PowerShell):
+Rationale:
+Smoke gates ловят критические ошибки установки/обновления и окружения (Docker + Postgres + addons_path). Полные тесты включаются отдельно, чтобы балансировать скорость PR-цикла и глубину проверки. Когда тесты стабилизируются и время прогона приемлемо — они переводятся в обязательные checks.
+
+How to enable tests as a PR gate later:
+Добавить --test-enable в install step smoke workflow (или включить отдельный test job), и отметить этот check как required в Branch Protection.
+
+## 2) How to run locally (single source of truth)
+
+Source-of-truth rules (apply to all local runs):
+- CI/Linux DB host: `127.0.0.1` with `--network host`.
+- Windows Docker Desktop DB host: `host.docker.internal` and must use `--entrypoint odoo` to avoid default `db`.
+- Always mount the repo at both `/mnt/extra-addons` and `/mnt/odoo-dev`.
+- Addons paths: itad_core = `/mnt/extra-addons/addons/common`; OCA field-service = `/mnt/extra-addons/addons/odoo18/oca/field-service`.
+- Always disable default config inheritance: `-e ODOO_RC=/dev/null` and `--config=/dev/null`.
+
+### A) Linux / CI (GitHub Actions runner style)
+
+Install/upgrade smoke (reference; CI enforces via odoo-smoke):
+```bash
+# install smoke
+docker run --rm --network host \
+  -e ODOO_RC=/dev/null \
+  -v "$PWD:/mnt/extra-addons" \
+  -v "$PWD:/mnt/odoo-dev" \
+  odoo:18.0 \
+    --config=/dev/null \
+    --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
+    -d itad_ci \
+    --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/addons/odoo18/oca/field-service \
+    -i itad_core \
+    --stop-after-init
+
+# upgrade smoke
+docker run --rm --network host \
+  -e ODOO_RC=/dev/null \
+  -v "$PWD:/mnt/extra-addons" \
+  -v "$PWD:/mnt/odoo-dev" \
+  odoo:18.0 \
+    --config=/dev/null \
+    --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
+    -d itad_ci \
+    --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/addons/odoo18/oca/field-service \
+    -u itad_core \
+    --stop-after-init
+```
+
+itad_core-only tests:
+```bash
+docker run --rm --network host \
+  -e ODOO_RC=/dev/null \
+  -v "$PWD:/mnt/extra-addons" \
+  -v "$PWD:/mnt/odoo-dev" \
+  odoo:18.0 \
+    --config=/dev/null \
+    --db_host=127.0.0.1 --db_port=5432 --db_user=odoo --db_password=odoo \
+    -d itad_ci_tests \
+    --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/addons/odoo18/oca/field-service \
+    -i itad_core \
+    --test-enable --test-tags /itad_core \
+    --stop-after-init
+```
+
+### B) Windows / Docker Desktop (PowerShell)
+
+Install/upgrade smoke (reference; CI enforces via odoo-smoke):
+```powershell
+# install smoke
+docker run --rm --entrypoint odoo `
+  -e ODOO_RC=/dev/null `
+  -v "${PWD}:/mnt/extra-addons" `
+  -v "${PWD}:/mnt/odoo-dev" `
+  odoo:18.0 `
+    --config=/dev/null `
+    --db_host=host.docker.internal --db_port=5432 --db_user=odoo --db_password=odoo `
+    -d itad_ci `
+    --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/addons/odoo18/oca/field-service `
+    -i itad_core `
+    --stop-after-init
+
+# upgrade smoke
+docker run --rm --entrypoint odoo `
+  -e ODOO_RC=/dev/null `
+  -v "${PWD}:/mnt/extra-addons" `
+  -v "${PWD}:/mnt/odoo-dev" `
+  odoo:18.0 `
+    --config=/dev/null `
+    --db_host=host.docker.internal --db_port=5432 --db_user=odoo --db_password=odoo `
+    -d itad_ci `
+    --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/addons/odoo18/oca/field-service `
+    -u itad_core `
+    --stop-after-init
+```
+
+itad_core-only tests:
 ```powershell
 docker run --rm --entrypoint odoo `
   -e ODOO_RC=/dev/null `
@@ -33,20 +127,16 @@ docker run --rm --entrypoint odoo `
     --config=/dev/null `
     --db_host=host.docker.internal --db_port=5432 --db_user=odoo --db_password=odoo `
     -d itad_ci_tests `
-    --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/oca/field-service `
+    --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/addons/common,/mnt/extra-addons/addons/odoo18/oca/field-service `
     -i itad_core `
     --test-enable --test-tags /itad_core `
     --stop-after-init
 ```
 
-Rationale:
-Smoke gates ловят критические ошибки установки/обновления и окружения (Docker + Postgres + addons_path). Полные тесты включаются отдельно, чтобы балансировать скорость PR-цикла и глубину проверки. Когда тесты стабилизируются и время прогона приемлемо — они переводятся в обязательные checks.
+Troubleshooting (common):
+- Database connection failure: could not translate host name 'db'. Fix: ensure `--entrypoint odoo` (Windows) and `--config=/dev/null` + `-e ODOO_RC=/dev/null`.
 
-How to enable tests as a PR gate later:
-Добавить --test-enable в install step smoke workflow (или включить отдельный test job), и отметить этот check как required в Branch Protection.
-```
-
-## 2) OCA Field Service Dependency Check
+## 3) OCA Field Service Dependency Check
 
 **Goal:** ensure the OCA stack is present and version-pinned.
 
@@ -63,7 +153,7 @@ Recommended layout:
 
 And `addons_path` must include both.
 
-## 3) Manifest Coverage (XML/CSV must be referenced)
+## 4) Manifest Coverage (XML/CSV must be referenced)
 
 Use the existing CI hygiene script (supports allowlist entries):
 
@@ -73,7 +163,7 @@ python3 scripts/odoo_ci_checks.py
 
 If a file is intentionally excluded, record it in `scripts/odoo_ci_allowlist.txt`.
 
-## 4) SoR Boundary Guardrail (Outbox vs. Business Fields)
+## 5) SoR Boundary Guardrail (Outbox vs. Business Fields)
 
 Outbox submissions **must not** mutate business truth fields in Odoo, except
 for service metadata (send status, error, timestamps).
@@ -83,7 +173,7 @@ Minimum assertions for regressions:
 - only `state`, `last_sent_at`, `last_error`, `attempt_count`, etc. change after a send
 - no change to FSM business fields (weights, compliance flags, etc.)
 
-## 5) Outbox Resiliency (Retry + Dead-Letter)
+## 6) Outbox Resiliency (Retry + Dead-Letter)
 
 **Minimum behavior:**
 
@@ -91,7 +181,7 @@ Minimum assertions for regressions:
 - cap attempts and mark dead-letter on exhaustion
 - track `attempt_count`, `next_retry_at`, `last_http_status`, `last_error`
 
-## 6) Registry + Cron Smoke Check (Post-Install)
+## 7) Registry + Cron Smoke Check (Post-Install)
 
 ```bash
 odoo -d itad_test -u itad_core --stop-after-init
@@ -107,7 +197,7 @@ for cron in crons:
 PY
 ```
 
-## 7) Pre-Merge Checklist (PR Template Ready)
+## 8) Pre-Merge Checklist (PR Template Ready)
 
 1. ✅ Install/upgrade passes in Docker (`-i`, `-u`).
 2. ✅ `addons_path` identical across dev/CI/prod.
