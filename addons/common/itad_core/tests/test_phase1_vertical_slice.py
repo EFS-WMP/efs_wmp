@@ -487,6 +487,9 @@ class TestPhase1CronFailureAndRetry(TransactionCase):
         """
         Requirement: Exponential backoff formula = min(60 * 2^(attempt_count-1), 3600) seconds.
         """
+        self.env["ir.config_parameter"].sudo().set_param(
+            "itad_core.outbox_backoff_jitter_ratio", "0.0"
+        )
         location = self.location
         stage_completed = self.stage_completed
 
@@ -583,7 +586,6 @@ class TestPhase1CronDomainAndScheduling(TransactionCase):
         self.assertEqual(len(found), 2, "Cron domain should find both PENDING and due-for-retry FAILED")
         self.assertIn(outbox1.id, found.ids)
         self.assertIn(outbox2.id, found.ids)
-
 
 
 

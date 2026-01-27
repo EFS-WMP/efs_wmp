@@ -12,6 +12,18 @@ from odoo.exceptions import UserError
 class FsmOrder(models.Model):
     _inherit = "fsm.order"
 
+    TELEMETRY_PROTECTED_FIELDS = {
+        "stage_id",
+        "date_start",
+        "date_end",
+        "scheduled_date",
+        "location_id",
+        "partner_id",
+        "team_id",
+        "priority",
+        "name",
+    }
+
     # Phase 1: only FSM is SoR; store ITAD Core refs as read-only
 # Находим itad_submit_state = fields.Selection(
     itad_submit_state = fields.Selection(
@@ -244,7 +256,11 @@ class FsmOrder(models.Model):
                     "payload_sha256": payload_sha256,
                 }
             )
-            order.write(
+            order.sudo().with_context(
+                itad_telemetry_write=True,
+                mail_notrack=True,
+                tracking_disable=True,
+            ).write(
                 {
                     "itad_outbox_id": outbox.id,
                     "itad_outbox_last_id": outbox.id,
@@ -254,6 +270,17 @@ class FsmOrder(models.Model):
                 }
             )
         return True
+
+    def _has_operational_scheduling_vals(self, vals):
+        return any(field in vals for field in self.TELEMETRY_PROTECTED_FIELDS)
+
+    def write(self, vals):
+        if self.env.context.get("itad_telemetry_write"):
+            safe_vals = dict(vals)
+            for field in self.TELEMETRY_PROTECTED_FIELDS:
+                safe_vals.pop(field, None)
+            return super().write(safe_vals)
+        return super().write(vals)
 
     def action_open_receiving_wizard(self):
         """Open receiving confirmation wizard for this order."""

@@ -108,6 +108,13 @@ class ItadCoreOutbox(models.Model):
         }
         return mapping.get(outbox_state, "failed")
 
+    def _write_order_telemetry(self, order, vals):
+        order.sudo().with_context(
+            itad_telemetry_write=True,
+            mail_notrack=True,
+            tracking_disable=True,
+        ).write(vals)
+
     def _send_to_itad_core(self):
         self.ensure_one()
         if not self.payload_json:
@@ -171,7 +178,7 @@ class ItadCoreOutbox(models.Model):
             order_vals["itad_receiving_weight_record_id"] = receiving_weight_record_id
             if "itad_receiving_id" in self.order_id._fields and not self.order_id.itad_receiving_id:
                 order_vals["itad_receiving_id"] = data.get("receiving_id") or receiving_weight_record_id
-        self.order_id.write(order_vals)
+        self._write_order_telemetry(self.order_id, order_vals)
 
     def _record_failure(self, error_message: str, status_code=None):
         now = fields.Datetime.now()
@@ -204,14 +211,15 @@ class ItadCoreOutbox(models.Model):
             }
         )
 
-        self.order_id.write(
+        self._write_order_telemetry(
+            self.order_id,
             {
                 "itad_submit_state": "failed",
                 "itad_last_error": error_message,
                 "itad_last_submit_at": now,
                 "itad_outbox_id": self.id,
                 "itad_outbox_last_id": self.id,
-            }
+            },
         )
 
     def _process_one(self):
@@ -273,13 +281,14 @@ class ItadCoreOutbox(models.Model):
                     "dead_letter_reason": False,
                 }
             )
-            rec.order_id.sudo().write(
+            self._write_order_telemetry(
+                rec.order_id,
                 {
                     "itad_submit_state": "pending",
                     "itad_last_error": False,
                     "itad_outbox_id": rec.id,
                     "itad_outbox_last_id": rec.id,
-                }
+                },
             )
         return True
 

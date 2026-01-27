@@ -148,7 +148,7 @@ class TestSoRGuardrails(TransactionCase):
             }
         )
 
-        order.invalidate_cache()
+        order._invalidate_cache()
         self._assert_fields_unchanged(
             before_operational,
             order,
@@ -169,9 +169,9 @@ class TestSoRGuardrails(TransactionCase):
         before_compliance = self._snapshot_fields(order, self.PROTECTED_COMPLIANCE_FIELDS)
 
         outbox._record_failure("Simulated failure")
-        outbox.action_retry()
+        outbox.with_user(self.user_receiving).action_retry()
 
-        order.invalidate_cache()
+        order._invalidate_cache()
         self._assert_fields_unchanged(
             before_operational,
             order,
