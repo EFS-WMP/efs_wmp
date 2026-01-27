@@ -9,6 +9,7 @@ import requests
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import config
 
 _logger = logging.getLogger(__name__)
 
@@ -109,7 +110,14 @@ class ItadMaterialSync(models.AbstractModel):
 
         Contract violations still return {"success": False, "error": ...}; only the log level changes.
         """
-        if self.env.registry.in_test_mode():
+        in_test_mode = False
+        try:
+            in_test_mode = bool(self.env.registry.in_test_mode())
+        except Exception:
+            in_test_mode = False
+        if not in_test_mode:
+            in_test_mode = bool(config.get("test_enable"))
+        if in_test_mode:
             _logger.warning(message)
         else:
             _logger.error(message)

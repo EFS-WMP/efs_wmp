@@ -208,17 +208,16 @@ class ItadCoreOutbox(models.Model):
     def action_retry(self):
         now = fields.Datetime.now()
         for rec in self:
-            rec.write(
-                {
-                    "state": "pending",
-                    "attempt_count": 0,
-                    "next_attempt_at": now,
-                    "next_retry_at": now,
-                    "last_error": False,
-                    "last_http_status": False,
-                    "dead_letter_reason": False,
-                }
-            )
+            vals = {
+                "state": "pending",
+                "attempt_count": 0,
+                "next_attempt_at": now,
+                "next_retry_at": now,
+                "last_error": False,
+                "last_http_status": False,
+                "dead_letter_reason": False,
+            }
+            rec.write({key: value for key, value in vals.items() if key in rec._fields})
             self._write_order_telemetry(
                 rec.order_id,
                 {
