@@ -12,6 +12,18 @@ from odoo.exceptions import UserError
 class FsmOrder(models.Model):
     _inherit = "fsm.order"
 
+    TELEMETRY_PROTECTED_FIELDS = {
+        "stage_id",
+        "date_start",
+        "date_end",
+        "scheduled_date",
+        "location_id",
+        "partner_id",
+        "team_id",
+        "priority",
+        "name",
+    }
+
     # Phase 1: only FSM is SoR; store ITAD Core refs as read-only
 # Находим itad_submit_state = fields.Selection(
     itad_submit_state = fields.Selection(
@@ -254,6 +266,37 @@ class FsmOrder(models.Model):
                 }
             )
         return True
+
+    def write(self, vals):
+        if self.env.context.get("itad_telemetry_write"):
+            protected = self.TELEMETRY_PROTECTED_FIELDS
+            snapshot = {}
+            for rec in self:
+                snapshot[rec.id] = {
+                    field: rec[field]
+                    for field in protected
+                    if field in rec._fields
+                }
+            result = super().write(vals)
+            for rec in self:
+                restore_vals = {}
+                for field in protected:
+                    if field not in rec._fields:
+                        continue
+                    before_val = snapshot[rec.id].get(field)
+                    after_val = rec[field]
+                    before_cmp = before_val.id if hasattr(before_val, "id") else before_val
+                    after_cmp = after_val.id if hasattr(after_val, "id") else after_val
+                    if before_cmp != after_cmp:
+                        restore_vals[field] = before_val.id if hasattr(before_val, "id") else before_val
+                if restore_vals:
+                    super(FsmOrder, rec.with_context(
+                        itad_telemetry_write=False,
+                        mail_notrack=True,
+                        tracking_disable=True,
+                    )).write(restore_vals)
+            return result
+        return super().write(vals)
 
     def action_open_receiving_wizard(self):
         """Open receiving confirmation wizard for this order."""
