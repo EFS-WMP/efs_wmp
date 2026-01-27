@@ -267,11 +267,39 @@ class FsmOrder(models.Model):
 
     def write(self, vals):
         if self.env.context.get("itad_telemetry_write"):
+            protected_fields = ("date_start", "date_end", "scheduled_date", "stage_id")
+            snapshots = {}
+            for rec in self:
+                snapshots[rec.id] = {
+                    field: rec[field].id if rec._fields[field].type == "many2one" else rec[field]
+                    for field in protected_fields
+                    if field in rec._fields
+                }
+
             safe_vals = dict(vals)
             for field in self.TELEMETRY_PROTECTED_FIELDS:
                 if field in self._fields:
                     safe_vals.pop(field, None)
-            return super().write(safe_vals)
+            result = super().write(safe_vals)
+
+            fields_to_invalidate = set()
+            for rec in self:
+                before = snapshots.get(rec.id, {})
+                restore_vals = {}
+                for field, original in before.items():
+                    current = rec[field].id if rec._fields[field].type == "many2one" else rec[field]
+                    if current != original:
+                        restore_vals[field] = original
+                        fields_to_invalidate.add(field)
+                if restore_vals:
+                    set_clause = ", ".join(f"{field} = %s" for field in restore_vals)
+                    self.env.cr.execute(
+                        f"UPDATE {self._table} SET {set_clause} WHERE id = %s",
+                        list(restore_vals.values()) + [rec.id],
+                    )
+            if fields_to_invalidate:
+                self.invalidate_cache(fnames=list(fields_to_invalidate))
+            return result
         return super().write(vals)
 
     def action_open_receiving_wizard(self):
