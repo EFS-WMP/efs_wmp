@@ -89,24 +89,56 @@ class ItadCoreOutbox(models.Model):
         }
         return mapping.get(outbox_state, "failed")
 
-    def _sql_write_order_itad_refs(self, order, vals):
+    def _sql_update_fsm_order_itad_refs(self, order, vals):
         """Write ITAD reference fields via SQL to avoid FSM write side effects."""
         allowed_fields = {
-            "itad_outbox_id",
-            "itad_outbox_last_id",
             "itad_submit_state",
+            "itad_pickup_manifest_id",
+            "itad_manifest_no",
+            "itad_manifest_status",
+            "itad_bol_id",
+            "itad_geocode_gate",
             "itad_last_submit_at",
             "itad_last_error",
+            "itad_outbox_id",
+            "itad_outbox_last_id",
             "itad_receipt_state",
         }
-        allowed_fields |= {field for field in vals if field.startswith("itad_")}
+        if "itad_receiving_id" in order._fields:
+            allowed_fields.add("itad_receiving_id")
+        if "itad_receiving_weight_record_id" in order._fields:
+            allowed_fields.add("itad_receiving_weight_record_id")
+
+        order_sudo = order.sudo()
+        protected_fields = []
+        snapshots = {}
+        if hasattr(order_sudo, "_get_telemetry_protected_fields"):
+            protected_fields = order_sudo._get_telemetry_protected_fields()
+        compliance_fields = [
+            "itad_receipt_weight_lbs",
+            "itad_receipt_material_code",
+            "itad_receipt_confirmed_at",
+            "itad_receipt_notes",
+            "itad_receipt_idempotency_key",
+        ]
+        protected_fields.extend(
+            field
+            for field in compliance_fields
+            if field in order_sudo._fields and field not in protected_fields
+        )
+        if protected_fields:
+            snapshots = order_sudo._snapshot_telemetry_fields(protected_fields)
+
         for rec in order:
             update_vals = {}
             for field in allowed_fields:
                 if field not in vals or field not in rec._fields:
                     continue
+                field_def = rec._fields[field]
+                if not field_def.store:
+                    continue
                 value = vals[field]
-                if rec._fields[field].type == "many2one":
+                if field_def.type == "many2one":
                     value = value.id if hasattr(value, "id") and value else value or None
                 update_vals[field] = value
             if not update_vals:
@@ -117,7 +149,10 @@ class ItadCoreOutbox(models.Model):
                 f"UPDATE {rec._table} SET {set_clause} WHERE id=%s",
                 params,
             )
-            rec.invalidate_cache(fnames=list(update_vals))
+            rec._invalidate_cache(fnames=list(update_vals))
+
+        if protected_fields:
+            order_sudo._restore_telemetry_fields(snapshots, protected_fields)
 
     def _send_to_itad_core(self):
         self.ensure_one()
@@ -183,7 +218,7 @@ class ItadCoreOutbox(models.Model):
             order_vals["itad_receiving_weight_record_id"] = receiving_weight_record_id
             if "itad_receiving_id" in self.order_id._fields and not self.order_id.itad_receiving_id:
                 order_vals["itad_receiving_id"] = data.get("receiving_id") or receiving_weight_record_id
-        self._sql_write_order_itad_refs(self.order_id, order_vals)
+        self._sql_update_fsm_order_itad_refs(self.order_id, order_vals)
 
     def _record_failure(self, error_message: str):
         now = fields.Datetime.now()
@@ -200,7 +235,7 @@ class ItadCoreOutbox(models.Model):
             }
         )
 
-        self._sql_write_order_itad_refs(
+        self._sql_update_fsm_order_itad_refs(
             self.order_id,
             {
                 "itad_submit_state": "failed",
@@ -236,7 +271,7 @@ class ItadCoreOutbox(models.Model):
                 "itad_outbox_last_id": rec.id,
                 "itad_submit_state": "pending",
             }
-            self._sql_write_order_itad_refs(
+            self._sql_update_fsm_order_itad_refs(
                 rec.order_id,
                 vals,
             )

@@ -286,7 +286,7 @@ class FsmOrder(models.Model):
         Runs only when itad_telemetry_write is set to keep SoR guardrails without recomputations.
         """
         for rec in self:
-            rec.invalidate_cache(fnames=list(protected_fields))
+            rec._invalidate_cache(fnames=list(protected_fields))
             before = snapshots.get(rec.id, {})
             restore_vals = {}
             for field in protected_fields:
@@ -302,7 +302,7 @@ class FsmOrder(models.Model):
                     f"UPDATE {self._table} SET {set_clause} WHERE id=%s",
                     params,
                 )
-                rec.invalidate_cache(fnames=list(restore_vals))
+                rec._invalidate_cache(fnames=list(restore_vals))
 
     def write(self, vals):
         if self.env.context.get("itad_telemetry_write"):
