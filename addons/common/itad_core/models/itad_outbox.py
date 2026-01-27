@@ -50,6 +50,59 @@ class ItadCoreOutbox(models.Model):
         # Expect config model to return (base_url, token)
         return self.env["itad.core.config"].get_itad_core_config()
 
+    def _get_retry_config(self):
+        icp = self.env["ir.config_parameter"].sudo()
+        return {
+            "max_attempts": int(icp.get_param("itad_core.outbox_max_attempts", "5")),
+            "base_delay_seconds": int(icp.get_param("itad_core.outbox_backoff_base_seconds", "60")),
+            "max_delay_seconds": int(icp.get_param("itad_core.outbox_max_delay_seconds", "3600")),
+            "jitter_ratio": float(icp.get_param("itad_core.outbox_backoff_jitter_ratio", "0.25")),
+        }
+
+    def _deterministic_jitter(self, base_delay, attempt):
+        if not self.idempotency_key:
+            return 0
+        raw = f"{self.idempotency_key}:{attempt}".encode("utf-8")
+        digest = hashlib.sha256(raw).hexdigest()
+        jitter_range = max(1, int(base_delay * self._get_retry_config()["jitter_ratio"]))
+        return int(digest, 16) % (jitter_range + 1)
+
+    def _compute_next_retry_at(self, attempt):
+        retry_config = self._get_retry_config()
+        base_delay = retry_config["base_delay_seconds"]
+        delay = base_delay * (2 ** max(attempt - 1, 0))
+        delay = min(delay, retry_config["max_delay_seconds"])
+        delay += self._deterministic_jitter(base_delay, attempt)
+        return fields.Datetime.now() + timedelta(seconds=delay)
+
+    def _is_retryable_status(self, status_code):
+        if status_code is None:
+            return True
+        if status_code >= 500:
+            return True
+        if status_code in (408, 429):
+            return True
+        if 400 <= status_code < 500:
+            return False
+        return True
+
+    @api.model
+    def _map_outbox_state_to_submit_state(self, outbox_state):
+        mapping = {
+            "pending": "pending",
+            "sent": "sent",
+            "failed": "failed",
+            "dead_letter": "failed",
+        }
+        return mapping.get(outbox_state, "failed")
+
+    def _write_order_telemetry(self, order, vals):
+        order.sudo().with_context(
+            itad_telemetry_write=True,
+            mail_notrack=True,
+            tracking_disable=True,
+        ).write(vals)
+
     def _send_to_itad_core(self):
         self.ensure_one()
         if not self.payload_json:
@@ -114,7 +167,7 @@ class ItadCoreOutbox(models.Model):
             order_vals["itad_receiving_weight_record_id"] = receiving_weight_record_id
             if "itad_receiving_id" in self.order_id._fields and not self.order_id.itad_receiving_id:
                 order_vals["itad_receiving_id"] = data.get("receiving_id") or receiving_weight_record_id
-        self.order_id.write(order_vals)
+        self._write_order_telemetry(self.order_id, order_vals)
 
     def _record_failure(self, error_message: str):
         now = fields.Datetime.now()
@@ -131,14 +184,15 @@ class ItadCoreOutbox(models.Model):
             }
         )
 
-        self.order_id.write(
+        self._write_order_telemetry(
+            self.order_id,
             {
                 "itad_submit_state": "failed",
                 "itad_last_error": error_message,
                 "itad_last_submit_at": now,
                 "itad_outbox_id": self.id,
                 "itad_outbox_last_id": self.id,
-            }
+            },
         )
 
     def _process_one(self):
@@ -152,14 +206,25 @@ class ItadCoreOutbox(models.Model):
     def action_retry(self):
         now = fields.Datetime.now()
         for rec in self:
-            rec.write({"state": "pending", "next_attempt_at": now, "last_error": False})
-            rec.order_id.write(
+            rec.write(
+                {
+                    "state": "pending",
+                    "attempt_count": 0,
+                    "next_attempt_at": now,
+                    "next_retry_at": now,
+                    "last_error": False,
+                    "last_http_status": False,
+                    "dead_letter_reason": False,
+                }
+            )
+            self._write_order_telemetry(
+                rec.order_id,
                 {
                     "itad_submit_state": "pending",
                     "itad_last_error": False,
                     "itad_outbox_id": rec.id,
                     "itad_outbox_last_id": rec.id,
-                }
+                },
             )
         return True
 

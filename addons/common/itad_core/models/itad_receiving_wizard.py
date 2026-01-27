@@ -738,7 +738,7 @@ class ItadReceivingWizard(models.TransientModel):
         })
 
         # Create audit log (reuse outbox pattern for consistency)
-        self.env["itad.core.outbox"].create({
+        self.env["itad.core.outbox"].sudo().create({
             "order_id": self.fsm_order_id.id,
             "state": "sent",
             "idempotency_key": idempotency_key,
