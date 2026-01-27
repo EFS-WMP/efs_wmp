@@ -15,7 +15,17 @@ if config["test_enable"]:
 
     @contextmanager
     def _assert_raises_no_savepoint(self, exception, *, msg=None):
-        if issubclass(exception, UserError):
+        if isinstance(exception, tuple):
+            for exc in exception:
+                if not isinstance(exc, type):
+                    raise TypeError("assertRaises expects exception classes")
+            is_user_error = any(issubclass(exc, UserError) for exc in exception)
+        else:
+            if not isinstance(exception, type):
+                raise TypeError("assertRaises expects an exception class")
+            is_user_error = issubclass(exception, UserError)
+
+        if is_user_error:
             with unittest.TestCase.assertRaises(self, exception, msg=msg) as cm:
                 yield cm
         else:
@@ -37,4 +47,3 @@ def _import_all_test_modules():
         importlib.import_module(f"{__name__}.{name}")
 
 _import_all_test_modules()
-
