@@ -3,6 +3,8 @@
 import base64
 import hashlib
 import json
+import logging
+import traceback
 import uuid
 
 from odoo import _, api, fields, models
@@ -11,6 +13,8 @@ from odoo.exceptions import UserError
 
 class FsmOrder(models.Model):
     _inherit = "fsm.order"
+
+    _logger = logging.getLogger(__name__)
 
     TELEMETRY_PROTECTED_FIELDS = {
         "stage_id",
@@ -306,6 +310,7 @@ class FsmOrder(models.Model):
 
     def write(self, vals):
         if self.env.context.get("itad_telemetry_write"):
+            before_dates = {rec.id: rec.date_start for rec in self}
             protected_fields = self._get_telemetry_protected_fields()
             snapshots = self._snapshot_telemetry_fields(protected_fields)
             safe_vals = dict(vals)
@@ -313,6 +318,17 @@ class FsmOrder(models.Model):
                 safe_vals.pop(field, None)
             res = super().write(safe_vals)
             self._restore_telemetry_fields(snapshots, protected_fields)
+            self._invalidate_cache(fnames=["date_start"])
+            after_dates = {rec.id: rec.date_start for rec in self}
+            if before_dates != after_dates:
+                self._logger.warning(
+                    "SoR telemetry write mutated date_start: ids=%s vals_keys=%s before=%s after=%s\n%s",
+                    self.ids,
+                    list(vals.keys()),
+                    before_dates,
+                    after_dates,
+                    "".join(traceback.format_stack()),
+                )
             return res
         return super().write(vals)
 
