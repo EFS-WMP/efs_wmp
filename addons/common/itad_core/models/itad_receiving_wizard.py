@@ -717,7 +717,7 @@ class ItadReceivingWizard(models.TransientModel):
             self._log_receipt_attempt(success=False, outcome="SERVER_ERROR", error_message=error_msg)
             
             # Update FSM order to exception state
-            self.fsm_order_id.sudo().write({
+            self.fsm_order_id.sudo().with_context(itad_telemetry_write=True).write({
                 "itad_receipt_state": "exception",
             })
             raise  # Re-raise to show error to user
@@ -728,7 +728,7 @@ class ItadReceivingWizard(models.TransientModel):
         # Update FSM order with receipt details
         receiving_weight_record_id = response_data.get("id")
         
-        self.fsm_order_id.sudo().write({
+        self.fsm_order_id.sudo().with_context(itad_telemetry_write=True).write({
             "itad_receipt_state": "received",
             "itad_receipt_confirmed_at": fields.Datetime.now(),
             "itad_receipt_weight_lbs": self.actual_weight_lbs,
