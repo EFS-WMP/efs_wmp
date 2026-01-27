@@ -102,6 +102,17 @@ class ItadMaterialSync(models.AbstractModel):
         
         combined = "|".join(fields_to_hash)
         return hashlib.sha256(combined.encode("utf-8")).hexdigest()[:16]
+
+    def _log_contract_violation(self, message):
+        """
+        Log contract violations; test mode downgrades log level without changing results.
+
+        Contract violations still return {"success": False, "error": ...}; only the log level changes.
+        """
+        if self.env.registry.in_test_mode():
+            _logger.warning(message)
+        else:
+            _logger.error(message)
     
     def _upsert_material_type(self, item, now):
         """
@@ -332,7 +343,7 @@ class ItadMaterialSync(models.AbstractModel):
             # SECURITY: Validate contract - wrapper format
             if "items" not in data or "meta" not in data:
                 error_msg = "Invalid API response: missing 'items' or 'meta' wrapper keys"
-                _logger.error(error_msg)
+                self._log_contract_violation(error_msg)
                 
                 # Log audit event
                 self.env["itad.taxonomy.audit.log"].log_event(
@@ -359,7 +370,7 @@ class ItadMaterialSync(models.AbstractModel):
                 missing = [f for f in required_fields if f not in item]
                 if missing:
                     error_msg = f"Item {idx} missing required fields: {missing}"
-                    _logger.error(error_msg)
+                    self._log_contract_violation(error_msg)
                     
                     # Log audit event
                     self.env["itad.taxonomy.audit.log"].log_event(

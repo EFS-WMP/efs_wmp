@@ -265,12 +265,54 @@ class FsmOrder(models.Model):
     def _has_operational_scheduling_vals(self, vals):
         return any(field in vals for field in self.TELEMETRY_PROTECTED_FIELDS)
 
+    def _get_telemetry_protected_fields(self):
+        """Return operational fields that must not change during telemetry writes."""
+        return [field for field in self.TELEMETRY_PROTECTED_FIELDS if field in self._fields]
+
+    def _snapshot_telemetry_fields(self, protected_fields):
+        """Capture raw values (IDs for many2one) for telemetry-guarded fields."""
+        return {
+            rec.id: {
+                field: (rec[field].id if self._fields[field].type == "many2one" and rec[field] else rec[field])
+                for field in protected_fields
+            }
+            for rec in self
+        }
+
+    def _restore_telemetry_fields(self, snapshots, protected_fields):
+        """
+        Restore protected fields via SQL to avoid write() side effects in telemetry context.
+
+        Runs only when itad_telemetry_write is set to keep SoR guardrails without recomputations.
+        """
+        for rec in self:
+            before = snapshots.get(rec.id, {})
+            restore_vals = {}
+            for field in protected_fields:
+                current = rec[field]
+                if self._fields[field].type == "many2one":
+                    current = current.id if current else None
+                if current != before.get(field):
+                    restore_vals[field] = before.get(field)
+            if restore_vals:
+                set_clause = ", ".join(f"{field}=%s" for field in restore_vals)
+                params = list(restore_vals.values()) + [rec.id]
+                self.env.cr.execute(
+                    f"UPDATE {self._table} SET {set_clause} WHERE id=%s",
+                    params,
+                )
+                rec.invalidate_cache(fnames=list(restore_vals))
+
     def write(self, vals):
         if self.env.context.get("itad_telemetry_write"):
+            protected_fields = self._get_telemetry_protected_fields()
+            snapshots = self._snapshot_telemetry_fields(protected_fields)
             safe_vals = dict(vals)
-            for field in self.TELEMETRY_PROTECTED_FIELDS:
+            for field in protected_fields:
                 safe_vals.pop(field, None)
-            return super().write(safe_vals)
+            res = super().write(safe_vals)
+            self._restore_telemetry_fields(snapshots, protected_fields)
+            return res
         return super().write(vals)
 
     def action_open_receiving_wizard(self):

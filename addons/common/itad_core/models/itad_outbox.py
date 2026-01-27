@@ -1,5 +1,6 @@
 # File: itad_core/models/itad_outbox.py
 
+import hashlib
 import json
 from datetime import timedelta
 
@@ -97,6 +98,7 @@ class ItadCoreOutbox(models.Model):
         return mapping.get(outbox_state, "failed")
 
     def _write_order_telemetry(self, order, vals):
+        """Write telemetry updates with a context that guards operational fields."""
         order.sudo().with_context(
             itad_telemetry_write=True,
             mail_notrack=True,
