@@ -32,7 +32,10 @@ class ItadCoreOutbox(models.Model):
 
     attempt_count = fields.Integer(default=0, readonly=True)
     next_attempt_at = fields.Datetime(readonly=True)
+    next_retry_at = fields.Datetime(readonly=True)
     last_error = fields.Text(readonly=True)
+    last_http_status = fields.Integer(readonly=True)
+    dead_letter_reason = fields.Text(readonly=True)
 
     # Response snapshot (optional but handy for UI/debug)
     itad_pickup_manifest_id = fields.Char(readonly=True)

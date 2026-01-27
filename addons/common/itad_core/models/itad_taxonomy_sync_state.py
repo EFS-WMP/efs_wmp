@@ -1,7 +1,7 @@
 # File: itad_core/models/itad_taxonomy_sync_state.py
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 
 
 class ItadTaxonomySyncState(models.Model):
@@ -107,10 +107,15 @@ class ItadTaxonomySyncState(models.Model):
         if not record:
             record = self.create({"name": "Material Taxonomy Sync State"})
         return record
+
+    def _check_integration_permission(self):
+        return self.env.su or self.env.user.has_group("itad_core.group_itad_integration")
     
     @api.model_create_multi
     def create(self, vals_list):
         """Enforce singleton pattern"""
+        if not self._check_integration_permission():
+            raise AccessError("Only integration users can create taxonomy sync state records.")
         existing = self.search([], limit=1)
         if existing or len(vals_list) > 1:
             raise UserError(
@@ -118,3 +123,8 @@ class ItadTaxonomySyncState(models.Model):
                 "The existing record will be updated automatically by the sync engine."
             )
         return super().create(vals_list)
+
+    def write(self, vals):
+        if not self._check_integration_permission():
+            raise AccessError("Only integration users can update taxonomy sync state records.")
+        return super().write(vals)
