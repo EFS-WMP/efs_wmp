@@ -90,7 +90,14 @@ class ItadCoreOutbox(models.Model):
         return mapping.get(outbox_state, "failed")
 
     def _filter_outbox_write_vals(self, vals):
-        return {field: value for field, value in vals.items() if field in self._fields}
+        """Filter write values to fields defined on every record in the recordset."""
+        if not self:
+            return {}
+        return {
+            field: value
+            for field, value in vals.items()
+            if all(field in rec._fields for rec in self)
+        }
 
     def _sql_update_fsm_order_itad_fields(self, order, vals):
         """Write ITAD fields via SQL to avoid FSM write side effects."""
@@ -98,7 +105,30 @@ class ItadCoreOutbox(models.Model):
         if invalid_keys:
             raise ValueError(f"Only itad_* fields are allowed: {', '.join(invalid_keys)}")
 
-        for rec in order:
+        if not order:
+            return
+
+        order_sudo = order.sudo()
+        protected_fields = []
+        snapshots = {}
+        if hasattr(order_sudo, "_get_telemetry_protected_fields"):
+            protected_fields = order_sudo._get_telemetry_protected_fields()
+        compliance_fields = [
+            "itad_receipt_weight_lbs",
+            "itad_receipt_material_code",
+            "itad_receipt_confirmed_at",
+            "itad_receipt_notes",
+            "itad_receipt_idempotency_key",
+        ]
+        protected_fields.extend(
+            field
+            for field in compliance_fields
+            if field in order_sudo._fields and field not in protected_fields
+        )
+        if protected_fields:
+            snapshots = order_sudo._snapshot_telemetry_fields(protected_fields)
+
+        for rec in order_sudo:
             update_vals = {}
             for field, value in vals.items():
                 if field not in rec._fields:
@@ -117,7 +147,10 @@ class ItadCoreOutbox(models.Model):
                 f"UPDATE {rec._table} SET {set_clause} WHERE id=%s",
                 params,
             )
-            rec.invalidate_cache(fnames=list(update_vals))
+            rec._invalidate_cache(fnames=list(update_vals))
+
+        if protected_fields:
+            order_sudo._restore_telemetry_fields(snapshots, protected_fields)
 
     def _send_to_itad_core(self):
         self.ensure_one()
