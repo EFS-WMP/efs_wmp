@@ -269,7 +269,8 @@ class FsmOrder(models.Model):
         if self.env.context.get("itad_telemetry_write"):
             safe_vals = dict(vals)
             for field in self.TELEMETRY_PROTECTED_FIELDS:
-                safe_vals.pop(field, None)
+                if field in self._fields:
+                    safe_vals.pop(field, None)
             return super().write(safe_vals)
         return super().write(vals)
 

@@ -189,15 +189,15 @@ class TestSoRGuardrails(TransactionCase):
         sync_state_model = self.env["itad.taxonomy.sync.state"]
         sync_state_model.sudo().search([]).unlink()
 
-        with self.assertRaises((AccessError, UserError)):
+        with self.assertRaises(AccessError):
             sync_state_model.with_user(self.user_no_group).create({"name": "Should Fail"})
 
         record = sync_state_model.sudo().create({"name": "Material Taxonomy Sync State"})
 
-        with self.assertRaises((AccessError, UserError)):
+        with self.assertRaises(AccessError):
             record.with_user(self.user_no_group).write({"last_error": "nope"})
 
-        with self.assertRaises((AccessError, UserError)):
+        with self.assertRaises(AccessError):
             record.with_user(self.user_receiving).write({"last_error": "still nope"})
 
         record.with_user(self.user_integration).write({"last_error": "integration ok"})
