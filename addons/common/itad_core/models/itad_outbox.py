@@ -68,14 +68,6 @@ class ItadCoreOutbox(models.Model):
         jitter_range = max(1, int(base_delay * self._get_retry_config()["jitter_ratio"]))
         return int(digest, 16) % (jitter_range + 1)
 
-    def _compute_next_retry_at(self, attempt):
-        retry_config = self._get_retry_config()
-        base_delay = retry_config["base_delay_seconds"]
-        delay = base_delay * (2 ** max(attempt - 1, 0))
-        delay = min(delay, retry_config["max_delay_seconds"])
-        delay += self._deterministic_jitter(base_delay, attempt)
-        return fields.Datetime.now() + timedelta(seconds=delay)
-
     def _is_retryable_status(self, status_code):
         if status_code is None:
             return True
@@ -97,13 +89,35 @@ class ItadCoreOutbox(models.Model):
         }
         return mapping.get(outbox_state, "failed")
 
-    def _write_order_telemetry(self, order, vals):
-        """Write telemetry updates with a context that guards operational fields."""
-        order.sudo().with_context(
-            itad_telemetry_write=True,
-            mail_notrack=True,
-            tracking_disable=True,
-        ).write(vals)
+    def _sql_write_order_itad_refs(self, order, vals):
+        """Write ITAD reference fields via SQL to avoid FSM write side effects."""
+        allowed_fields = {
+            "itad_outbox_id",
+            "itad_outbox_last_id",
+            "itad_submit_state",
+            "itad_last_submit_at",
+            "itad_last_error",
+            "itad_receipt_state",
+        }
+        allowed_fields |= {field for field in vals if field.startswith("itad_")}
+        for rec in order:
+            update_vals = {}
+            for field in allowed_fields:
+                if field not in vals or field not in rec._fields:
+                    continue
+                value = vals[field]
+                if rec._fields[field].type == "many2one":
+                    value = value.id if hasattr(value, "id") and value else value or None
+                update_vals[field] = value
+            if not update_vals:
+                continue
+            set_clause = ", ".join(f"{field}=%s" for field in update_vals)
+            params = list(update_vals.values()) + [rec.id]
+            self.env.cr.execute(
+                f"UPDATE {rec._table} SET {set_clause} WHERE id=%s",
+                params,
+            )
+            rec.invalidate_cache(fnames=list(update_vals))
 
     def _send_to_itad_core(self):
         self.ensure_one()
@@ -169,7 +183,7 @@ class ItadCoreOutbox(models.Model):
             order_vals["itad_receiving_weight_record_id"] = receiving_weight_record_id
             if "itad_receiving_id" in self.order_id._fields and not self.order_id.itad_receiving_id:
                 order_vals["itad_receiving_id"] = data.get("receiving_id") or receiving_weight_record_id
-        self._write_order_telemetry(self.order_id, order_vals)
+        self._sql_write_order_itad_refs(self.order_id, order_vals)
 
     def _record_failure(self, error_message: str):
         now = fields.Datetime.now()
@@ -186,7 +200,7 @@ class ItadCoreOutbox(models.Model):
             }
         )
 
-        self._write_order_telemetry(
+        self._sql_write_order_itad_refs(
             self.order_id,
             {
                 "itad_submit_state": "failed",
@@ -208,24 +222,23 @@ class ItadCoreOutbox(models.Model):
     def action_retry(self):
         now = fields.Datetime.now()
         for rec in self:
-            vals = {
-                "state": "pending",
-                "attempt_count": 0,
-                "next_attempt_at": now,
-                "next_retry_at": now,
-                "last_error": False,
-                "last_http_status": False,
-                "dead_letter_reason": False,
-            }
-            rec.write({key: value for key, value in vals.items() if key in rec._fields})
-            self._write_order_telemetry(
-                rec.order_id,
+            rec.write(
                 {
-                    "itad_submit_state": "pending",
-                    "itad_last_error": False,
-                    "itad_outbox_id": rec.id,
-                    "itad_outbox_last_id": rec.id,
-                },
+                    "state": "pending",
+                    "attempt_count": 0,
+                    "next_attempt_at": now,
+                    "last_error": False,
+                }
+            )
+            vals = {
+                "itad_last_error": False,
+                "itad_outbox_id": rec.id,
+                "itad_outbox_last_id": rec.id,
+                "itad_submit_state": "pending",
+            }
+            self._sql_write_order_itad_refs(
+                rec.order_id,
+                vals,
             )
         return True
 
