@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+import uuid
 from datetime import timedelta
 
 import requests
@@ -33,8 +34,8 @@ class ItadCoreOutbox(models.Model):
         index=True,
     )
 
-    idempotency_key = fields.Char(required=True, readonly=True, index=True)
-    correlation_id = fields.Char(required=True, readonly=True, index=True)
+    idempotency_key = fields.Char(required=True, readonly=True, index=True, default=lambda self: uuid.uuid4().hex)
+    correlation_id = fields.Char(required=True, readonly=True, index=True, default=lambda self: uuid.uuid4().hex)
 
     payload_json = fields.Text(readonly=True)
     payload_sha256 = fields.Char(readonly=True)
@@ -79,6 +80,17 @@ class ItadCoreOutbox(models.Model):
         jitter_range = max(1, int(base_delay * self._get_retry_config()["jitter_ratio"]))
         return int(digest, 16) % (jitter_range + 1)
 
+    def _canonical_payload(self, payload_json):
+        try:
+            loaded = json.loads(payload_json)
+            return json.dumps(loaded, sort_keys=True, separators=(",", ":"))
+        except Exception:
+            return payload_json
+
+    def _compute_payload_sha256(self, payload_json):
+        canonical = self._canonical_payload(payload_json)
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
     def _compute_next_retry_at(self, attempt):
         retry_config = self._get_retry_config()
         base_delay = retry_config["base_delay_seconds"]
@@ -107,6 +119,24 @@ class ItadCoreOutbox(models.Model):
             "dead_letter": "failed",
         }
         return mapping.get(outbox_state, "failed")
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        prepared_vals = []
+        for vals in vals_list:
+            vals = dict(vals)
+            vals.setdefault("idempotency_key", uuid.uuid4().hex)
+            vals.setdefault("correlation_id", uuid.uuid4().hex)
+            if vals.get("payload_json") and not vals.get("payload_sha256"):
+                vals["payload_sha256"] = self._compute_payload_sha256(vals["payload_json"])
+            prepared_vals.append(vals)
+        return super().create(prepared_vals)
+
+    def write(self, vals):
+        update_vals = dict(vals)
+        if update_vals.get("payload_json") and not update_vals.get("payload_sha256"):
+            update_vals["payload_sha256"] = self._compute_payload_sha256(update_vals["payload_json"])
+        return super().write(update_vals)
 
     def _send_to_itad_core(self):
         self.ensure_one()

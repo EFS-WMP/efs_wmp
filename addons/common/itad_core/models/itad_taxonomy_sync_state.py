@@ -51,7 +51,7 @@ class ItadTaxonomySyncState(models.Model):
     stats_last_run = fields.Text(
         string="Stats (Last Run)",
         readonly=True,
-        help="JSON-formatted stats: created, updated, deactivated, unchanged counts",
+        help="JSON-formatted stats: created, updated, disabled/deactivated, unchanged counts",
     )
     
     # Break-glass support (Phase 2.3 Security)

@@ -14,6 +14,15 @@ Progress Summary
 - `docker compose -f itad-core/docker-compose.itad-core.yml exec -T -e TEST_DATABASE_URL=postgresql+psycopg://itad_user:itad_pass@postgres:5432/itad_core_test itad-core python -m pytest -q`
   - `docker compose -p odoo18 -f docker/odoo18/docker-compose.odoo18.yml run --rm -T odoo18 odoo -c /etc/odoo/odoo.conf -d <DB_NAME> -u itad_core --stop-after-init --test-enable --no-http`
 
+## Phase 1 Tasks — Outbox ACL/RBAC Fix (2026-02-02)
+- [ ] Restore create access for basic users and requeue write access for receiving managers on `itad.core.outbox`.
+- [ ] Requeue RBAC: only `itad_core.group_receiving_manager` may requeue.
+- Verification (inside container):
+  - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 ^`
+    `  odoo -c /etc/odoo/odoo.conf -d <DB_NAME> -u itad_core --stop-after-init --test-enable`
+  - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 ^`
+    `  sh -lc \"(! grep -RIn --include='*.xml' -E '\\\\b(attrs|states)\\\\s*=' /mnt/extra-addons-custom/itad_core)\"`
+
 ## Phase 2.2a Verification (Canonical)
 - One-shot tests:
   - `docker compose -p odoo18 -f docker/odoo18/docker-compose.odoo18.yml run --rm -T odoo18 odoo --test-enable -d odoo18_db -c /etc/odoo/odoo.conf -u itad_core --stop-after-init --no-http`

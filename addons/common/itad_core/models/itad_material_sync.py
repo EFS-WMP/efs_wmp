@@ -207,6 +207,14 @@ class ItadMaterialSync(models.AbstractModel):
         sync_state = sync_state_model.get_singleton()
         
         now = fields.Datetime.now()
+        stats = {
+            "created": 0,
+            "updated": 0,
+            "disabled": 0,
+            "deactivated": 0,
+            "unchanged": 0,
+        }
+        cursor = None
         
         # Step 1: Acquire deterministic advisory lock
         lock_key = self._advisory_lock_key(SYNC_LOCK_NAMESPACE)
@@ -234,7 +242,7 @@ class ItadMaterialSync(models.AbstractModel):
                 "last_attempt_at": now,
                 "last_error": f"Failed to acquire advisory lock: {e}",
             })
-            return {"success": False, "error": "Lock acquisition failed"}
+            return {"success": False, "stats": stats, "cursor": cursor, "error": "Lock acquisition failed"}
         
         if not lock_acquired:
             error_msg = "Sync already running (could not acquire advisory lock)"
@@ -252,7 +260,7 @@ class ItadMaterialSync(models.AbstractModel):
                 "last_attempt_at": now,
                 "last_error": error_msg,
             })
-            return {"success": False, "error": error_msg}
+            return {"success": False, "stats": stats, "cursor": cursor, "error": error_msg}
         
         try:
             # Log sync attempt
@@ -306,7 +314,7 @@ class ItadMaterialSync(models.AbstractModel):
                     "last_attempt_at": now,
                     "last_error": error_msg,
                 })
-                return {"success": False, "error": error_msg}
+                return {"success": False, "stats": stats, "cursor": cursor, "error": error_msg}
             
             # Parse response
             try:
@@ -327,12 +335,12 @@ class ItadMaterialSync(models.AbstractModel):
                     "last_attempt_at": now,
                     "last_error": error_msg,
                 })
-                return {"success": False, "error": error_msg}
+                return {"success": False, "stats": stats, "cursor": cursor, "error": error_msg}
             
             # SECURITY: Validate contract - wrapper format
             if "items" not in data or "meta" not in data:
                 error_msg = "Invalid API response: missing 'items' or 'meta' wrapper keys"
-                _logger.error(error_msg)
+                _logger.warning(error_msg)
                 
                 # Log audit event
                 self.env["itad.taxonomy.audit.log"].log_event(
@@ -345,7 +353,7 @@ class ItadMaterialSync(models.AbstractModel):
                     "last_attempt_at": now,
                     "last_error": error_msg,
                 })
-                return {"success": False, "error": error_msg}
+                return {"success": False, "stats": stats, "cursor": cursor, "error": error_msg}
             
             items = data["items"]
             meta = data["meta"]
@@ -373,21 +381,21 @@ class ItadMaterialSync(models.AbstractModel):
                         "last_attempt_at": now,
                         "last_error": error_msg,
                     })
-                    return {"success": False, "error": error_msg}
+                    return {"success": False, "stats": stats, "cursor": cursor, "error": error_msg}
             
             # Step 4: Upsert each item
-            stats = {
-                "created": 0,
-                "updated": 0,
-                "deactivated": 0,
-                "unchanged": 0,
-            }
-            
             max_updated_at = None
             
             for item in items:
                 action, record = self._upsert_material_type(item, now)
-                stats[action] += 1
+                if action == "deactivated":
+                    stats["disabled"] += 1
+                    stats["deactivated"] += 1
+                elif action in stats:
+                    stats[action] += 1
+                else:
+                    # fallback to unchanged bucket for unexpected keys
+                    stats["unchanged"] += 1
                 
                 # Track max updated_at for cursor
                 item_updated_at = item.get("updated_at")
@@ -404,6 +412,7 @@ class ItadMaterialSync(models.AbstractModel):
             if sync_config["incremental_enabled"] and max_updated_at:
                 # Use max(updated_at) as new cursor
                 new_cursor = fields.Datetime.to_string(max_updated_at.replace(tzinfo=None))
+            cursor = new_cursor
             
             stats_json = json.dumps(stats, indent=2)
             
@@ -560,7 +569,7 @@ class ItadMaterialSync(models.AbstractModel):
                         f"Successfully synced material taxonomy. "
                         f"Created: {stats.get('created', 0)}, "
                         f"Updated: {stats.get('updated', 0)}, "
-                        f"Deactivated: {stats.get('deactivated', 0)}, "
+                        f"Disabled: {stats.get('disabled', 0)}, "
                         f"Unchanged: {stats.get('unchanged', 0)}"
                     ),
                     "type": "success",

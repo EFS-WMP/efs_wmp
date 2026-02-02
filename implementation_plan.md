@@ -3,6 +3,19 @@
 ## Overview
 Phase 2.2 production hardening and backward compatibility for Receiving Dashboard MVP.
 
+### 2026-02-02 Outbox ACL/RBAC investigation (CI regression)
+- Outbox model `itad.core.outbox` lives in `addons/common/itad_core/models/itad_outbox.py` (action_requeue at ~line 260).
+- Access CSV currently grants `base.group_user` read-only (no create/write); `group_receiving_manager` has read+write but no create; integration group has full create/write.
+- Receiving manager group defined in `security/itad_core_groups.xml` and manifest loads security files.
+- No existing tests named for FSM outbox access found (`test_fsm_itad_outbox_access_*` absent).
+- Noisy contract error logged as ERROR in `models/itad_material_sync.py` when response missing `items`/`meta`.
+
+### 2026-02-02 Fix scope snapshot
+- Root cause: Outbox ACL missed `perm_create` for base users and managers; requeue RBAC not covered by tests; material sync contract violation logged as ERROR causing noise.
+- Changes planned: add ACL create perms, add RBAC/ACL regression tests, downgrade missing-wrapper log to WARNING with graceful return.
+- Test coverage: new TransactionCase suites for basic outbox create, manager vs non-manager requeue, and material sync missing-wrapper handling.
+- Assumptions: FSM team membership grants read on created orders; no extra record rules required beyond existing company/team defaults.
+
 ## Deployment Sequence
 
 ## Phase 2.2 Gate Checklist (Required vs Optional)

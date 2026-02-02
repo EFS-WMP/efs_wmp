@@ -2,6 +2,10 @@
 
 ## Changed/Created Files
 
+- `addons/common/itad_core/security/ir.model.access.csv`: Added create access for basic users and receiving managers on `itad.core.outbox`; manager write retained.
+- `addons/common/itad_core/tests/test_fsm_itad_outbox_access_basic.py`: Ensures basic user can create outbox rows (ACL regression guard).
+- `addons/common/itad_core/tests/test_fsm_itad_outbox_access_requeue.py`: Verifies requeue denied to non-managers and allowed for receiving managers.
+- `addons/common/itad_core/tests/test_material_sync_contract.py`: Downgrades missing wrapper log path to warning and asserts graceful handling.
 - `runbook_odoo_quality_checks.md`: Pointer to the canonical Odoo 18 quality gates runbook under `docs/`.
 - `docs/runbook_odoo_quality_checks.md`: Runbook of install smoke tests, addons_path/OCA checks, manifest coverage, SoR guardrails, and cron/registry smoke checks for Odoo 18.
 - `addons/common/itad_core/scripts/capture_phase2_2a_test_evidence.py`: Captures Phase 2.2a one-shot Odoo test output, DB list, sha256s, and summary metadata under `docs/evidence/phase2.2a/`.

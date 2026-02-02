@@ -38,3 +38,8 @@ def _import_all_test_modules():
 
 _import_all_test_modules()
 
+# Explicit imports to ensure Odoo test loader picks up new suites in all environments
+from . import test_fsm_itad_outbox_access_basic  # noqa: F401,E402
+from . import test_fsm_itad_outbox_access_requeue  # noqa: F401,E402
+from . import test_material_sync_contract  # noqa: F401,E402
+
