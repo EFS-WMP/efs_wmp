@@ -303,7 +303,7 @@ class ItadCoreOutbox(models.Model):
                     "dead_letter_reason": False,
                 }
             )
-            rec.order_id.sudo().write(
+            rec.order_id.write(
                 {
                     "itad_submit_state": "pending",
                     "itad_last_error": False,

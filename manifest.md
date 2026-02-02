@@ -2,6 +2,12 @@
 
 ## Changed/Created Files
 
+- `addons/common/itad_core/models/itad_outbox.py`: Defaults for idempotency/correlation, deterministic payload hashing, and secure requeue without sudo bypass.
+- `addons/common/itad_core/security/ir.model.access.csv`: Qualified receiving manager XMLID and ensured create access for base users.
+- `addons/common/itad_core/tests/__init__.py`: _assertRaises patch now supports tuples while preserving UserError no-savepoint behavior.
+- `addons/common/itad_core/tests/test_assert_raises_no_savepoint.py`: Regression tests for tuple/class handling of the custom assertRaises helper.
+- `addons/common/itad_ci_tests/` (new addon): CI regression tests for outbox ACL create, backoff jitter determinism, and assertRaises helper behavior.
+- `addons/common/itad_core/tests/test_material_sync_contract.py`: Aligns with real sync contract (warning + structured failure stats).
 - `addons/common/itad_core/security/ir.model.access.csv`: Added create access for basic users and receiving managers on `itad.core.outbox`; manager write retained.
 - `addons/common/itad_core/tests/test_fsm_itad_outbox_access_basic.py`: Ensures basic user can create outbox rows (ACL regression guard).
 - `addons/common/itad_core/tests/test_fsm_itad_outbox_access_requeue.py`: Verifies requeue denied to non-managers and allowed for receiving managers.

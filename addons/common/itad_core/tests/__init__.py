@@ -15,12 +15,18 @@ if config["test_enable"]:
 
     @contextmanager
     def _assert_raises_no_savepoint(self, exception, *, msg=None):
-        if issubclass(exception, UserError):
-            with unittest.TestCase.assertRaises(self, exception, msg=msg) as cm:
+        exc_types = exception if isinstance(exception, tuple) else (exception,)
+        # If any expected type is UserError OR multiple types are provided, avoid savepoint and use unittest
+        needs_plain_ctx = len(exc_types) > 1 or any(
+            isinstance(exc, type) and issubclass(exc, UserError) for exc in exc_types
+        )
+        if needs_plain_ctx:
+            with unittest.TestCase.assertRaises(self, exc_types, msg=msg) as cm:
                 yield cm
-        else:
-            with _original_assert_raises(self, exception, msg=msg) as cm:
-                yield cm
+            return
+        # Single non-UserError class: defer to original behavior
+        with _original_assert_raises(self, exc_types[0], msg=msg) as cm:
+            yield cm
 
     TransactionCase._assertRaises = _assert_raises_no_savepoint
 
@@ -42,4 +48,5 @@ _import_all_test_modules()
 from . import test_fsm_itad_outbox_access_basic  # noqa: F401,E402
 from . import test_fsm_itad_outbox_access_requeue  # noqa: F401,E402
 from . import test_material_sync_contract  # noqa: F401,E402
+from . import test_assert_raises_no_savepoint  # noqa: F401,E402
 

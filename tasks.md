@@ -23,6 +23,16 @@ Progress Summary
   - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 ^`
     `  sh -lc \"(! grep -RIn --include='*.xml' -E '\\\\b(attrs|states)\\\\s*=' /mnt/extra-addons-custom/itad_core)\"`
 
+## Phase 1 Tasks — CI Test Hardening (2026-02-02)
+- [ ] Patch TransactionCase `_assertRaises` to support tuple exception lists without TypeError.
+- [ ] Outbox create ACL regression: base.group_user can create `itad.core.outbox`.
+- [ ] Backoff jitter determinism: expect exact delay using hash-based jitter with fixed now.
+- [ ] Secure `action_requeue` (no sudo bypass; manager only).
+- [ ] Align material sync contract test to real `_sync_from_itad_core` API (warning + structured failure).
+- Verification commands:
+  - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 odoo -c /etc/odoo/odoo.conf -d <DB_NAME> -u itad_core`
+  - `docker compose -p odoo18 -f C:\odoo_dev\docker\odoo18\docker-compose.odoo18.yml exec -T odoo18 odoo -c /etc/odoo/odoo.conf -d <DB_NAME> -u itad_core,itad_ci_tests --test-enable --stop-after-init`
+
 ## Phase 2.2a Verification (Canonical)
 - One-shot tests:
   - `docker compose -p odoo18 -f docker/odoo18/docker-compose.odoo18.yml run --rm -T odoo18 odoo --test-enable -d odoo18_db -c /etc/odoo/odoo.conf -u itad_core --stop-after-init --no-http`

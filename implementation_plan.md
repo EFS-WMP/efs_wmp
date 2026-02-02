@@ -16,6 +16,13 @@ Phase 2.2 production hardening and backward compatibility for Receiving Dashboar
 - Test coverage: new TransactionCase suites for basic outbox create, manager vs non-manager requeue, and material sync missing-wrapper handling.
 - Assumptions: FSM team membership grants read on created orders; no extra record rules required beyond existing company/team defaults.
 
+### 2026-02-02 CI hardening (current task)
+- Added deterministic defaults for idempotency/correlation and payload hashing to avoid create() failures.
+- Qualified receiving manager XMLIDs across ACLs; requeue no longer uses sudo to bypass ACLs.
+- Patched TransactionCase _assertRaises to accept tuple exception lists (avoids issubclass TypeError).
+- CI addon `itad_ci_tests` adds regression tests for outbox ACL create, backoff jitter determinism, and assertRaises helper.
+- Material sync contract returns structured {success, stats, cursor, error} on wrapper violations; warning-level log asserted in tests.
+
 ## Deployment Sequence
 
 ## Phase 2.2 Gate Checklist (Required vs Optional)
