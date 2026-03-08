@@ -1,10 +1,5 @@
 name: odoo-tests
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * *"
-
 jobs:
   tests:
     runs-on: ubuntu-latest
